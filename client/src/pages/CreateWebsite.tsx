@@ -40,7 +40,7 @@ export default function CreateWebsite() {
   const [music, setMusic] = useState("piano");
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  
+  const [createdWebsiteId, setCreatedWebsiteId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const themes = [
@@ -59,40 +59,94 @@ export default function CreateWebsite() {
     { id: "upbeat", name: "Upbeat Pop", desc: "Happy & energetic" },
   ];
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newImages = Array.from(e.target.files).map(file => ({
-        id: Math.random().toString(36).substr(2, 9),
-        image: URL.createObjectURL(file),
-        caption: "",
-        date: new Date().toISOString().split('T')[0]
-      }));
-      setMemories(prev => [...prev, ...newImages]);
-    }
-  };
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files) return;
 
-  const updateMemory = (id: string, field: keyof Memory, value: string) => {
+  const files = Array.from(e.target.files);
+
+  for (const file of files) {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    setMemories(prev => [
+      ...prev,
+      {
+        id: Math.random().toString(36).substring(2),
+        image: data.url,
+        caption: "",
+        date: new Date().toISOString().split("T")[0],
+      }
+    ]);
+  }
+};
+  function updateMemory(id: string, field: keyof Memory, value: string) {
     setMemories(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
-  };
+  }
 
   const enhanceMessage = () => {
     setMessage("Every memory we've created together is a treasure I hold close to my heart. On this special day, I want to remind you of how uniquely beautiful your soul is, and how much light you bring into my world. Happy Birthday, may your day be as extraordinary as you are.");
   };
 
-  const handleGenerate = () => {
-    setStep("generating");
-    setProgress(0);
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => setStep("preview"), 500);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 100);
-  };
+ const handleGenerate = async () => {
+  setStep("generating");
+  setProgress(0);
+
+  const token = localStorage.getItem("token");
+
+  const interval = setInterval(() => {
+    setProgress((prev) => {
+      if (prev >= 100) {
+        clearInterval(interval);
+        return 100;
+      }
+      return prev + 2;
+    });
+  }, 100);
+
+  try {
+    const res = await fetch("/api/websites", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: `${name}'s Birthday Website`,
+        theme,
+        content: JSON.stringify({
+          name,
+          relationship,
+          confessionMode,
+          memories,
+          message,
+          music,
+        }),
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to create website");
+    }
+
+   const data = await res.json();
+    setCreatedWebsiteId(data.id);
+
+    setTimeout(() => {
+      setStep("preview");
+    }, 500);
+
+  } catch (error) {
+    console.error("Website creation error:", error);
+    alert("Something went wrong while creating the website.");
+  }
+};
 
   const nextStep = (next: Step) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -487,101 +541,64 @@ export default function CreateWebsite() {
           )}
 
           {/* PREVIEW & SMART GIFTS */}
-          {step === "preview" && (
-            <motion.div key="preview" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                  <CheckCircle2 className="w-10 h-10" />
-                </div>
-                <h2 className="text-4xl font-serif font-medium mb-3">Your Website is Ready!</h2>
-                <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                  Aura has successfully generated a gorgeous, responsive website for {name}. Review it, publish it, and consider adding a physical gift.
-                </p>
-              </div>
+          
+{step === "preview" && (
+  <motion.div
+    key="preview"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="space-y-10"
+  >
+    <div className="text-center">
+      <h2 className="text-4xl font-serif font-medium mb-3">
+        Your Website is Ready!
+      </h2>
+      <p className="text-lg text-muted-foreground">
+        Aura has successfully generated your website for {name}.
+      </p>
+    </div>
 
-              <div className="grid lg:grid-cols-5 gap-10">
-                {/* Website Preview Panel */}
-                <div className="lg:col-span-3 space-y-6">
-                  <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/40 group bg-white">
-                    <div className="h-10 bg-secondary/50 border-b flex items-center px-4 gap-2 backdrop-blur-md">
-                      <div className="flex gap-1.5">
-                        <div className="w-3.5 h-3.5 rounded-full bg-red-400" />
-                        <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
-                        <div className="w-3.5 h-3.5 rounded-full bg-green-400" />
-                      </div>
-                      <div className="mx-auto text-xs text-muted-foreground font-medium bg-white px-6 py-1.5 rounded-md shadow-sm flex items-center gap-2">
-                        <Lock className="w-3 h-3" /> {name.toLowerCase().replace(/\s+/g, '-')}.aura.site
-                      </div>
-                    </div>
-                    <img src={mockupImg} alt="Preview" className="w-full h-auto" />
-                    
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center backdrop-blur-sm gap-4">
-                      <button className="bg-white text-black px-8 py-3 rounded-full font-medium flex items-center gap-2 shadow-xl hover:scale-105 transition-transform">
-                        <Eye className="w-5 h-5" /> Fullscreen Preview
-                      </button>
-                      <button className="text-white bg-white/20 px-6 py-2 rounded-full text-sm font-medium hover:bg-white/30 transition-colors backdrop-blur-md">
-                        Edit Details
-                      </button>
-                    </div>
-                  </div>
+    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border">
+      <iframe
+        src={createdWebsiteId ? `/w/${createdWebsiteId}` : ""}
+        className="w-full h-[500px]"
+        title="Website Preview"
+      />
+    </div>
 
-                  <div className="flex gap-4">
-                    <button className="flex-1 bg-foreground text-background py-4 rounded-xl font-medium hover:bg-foreground/90 transition-all flex items-center justify-center gap-2 shadow-lg">
-                      <PlayCircle className="w-5 h-5" /> Publish to Web
-                    </button>
-                    <button className="flex-1 bg-white border border-border text-foreground py-4 rounded-xl font-medium hover:bg-secondary transition-all flex items-center justify-center gap-2 shadow-sm">
-                      <Download className="w-5 h-5" /> Download HTML/CSS
-                    </button>
-                  </div>
-                </div>
+    <div className="flex gap-4 justify-center">
+      <button
+        onClick={() => {
+          if (createdWebsiteId) {
+            window.open(`/w/${createdWebsiteId}`, "_blank");
+          }
+        }}
+        className="bg-black text-white px-8 py-3 rounded-xl font-medium hover:bg-black/90 transition-all"
+      >
+        Fullscreen Preview
+      </button>
 
-                {/* Smart Gift Recommendations */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-border">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Gift className="w-5 h-5 text-primary" />
-                      <h3 className="font-serif font-medium text-xl">Smart Recommendations</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      Based on your "{theme}" theme and relationship with {name}, we think they'd love these physical gifts to accompany the digital website.
-                    </p>
+      <button
+        onClick={() => setStep("recipient")}
+        className="bg-gray-200 text-black px-8 py-3 rounded-xl font-medium hover:bg-gray-300 transition-all"
+      >
+        Edit Details
+      </button>
 
-                    <div className="space-y-4">
-                      {[
-                        { img: gift1, name: "Premium Keepsake Box", price: "$45", badge: "Best Match" },
-                        { img: gift2, name: "Eternal Peony Bouquet", price: "$60", badge: "Popular" }
-                      ].map((product, i) => (
-                        <div key={i} className="flex gap-4 p-3 rounded-2xl border border-border hover:border-primary/30 transition-colors cursor-pointer group">
-                          <div className="w-20 h-20 rounded-xl overflow-hidden bg-secondary">
-                            <img src={product.img} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          </div>
-                          <div className="flex-1 py-1">
-                            <div className="flex justify-between items-start mb-1">
-                              <h4 className="font-medium text-sm leading-tight">{product.name}</h4>
-                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-md font-medium whitespace-nowrap ml-2">
-                                {product.badge}
-                              </span>
-                            </div>
-                            <p className="font-semibold text-primary">{product.price}</p>
-                            <button className="text-xs font-medium text-muted-foreground hover:text-foreground mt-2 flex items-center gap-1">
-                              Add to cart <ChevronRight className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-secondary/30 rounded-3xl p-6 text-center">
-                     <p className="text-sm text-muted-foreground mb-3">Want to try a different look?</p>
-                     <button onClick={() => setStep("theme")} className="bg-white border border-border px-6 py-2 rounded-full text-sm font-medium hover:bg-secondary transition-colors">
-                       Change Theme
-                     </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
+      <button
+        onClick={() => {
+          if (createdWebsiteId) {
+            window.open(`/api/websites/${createdWebsiteId}/download`);
+          }
+        }}
+        className="bg-white border px-8 py-3 rounded-xl font-medium hover:bg-gray-100 transition-all"
+      >
+        Download HTML/CSS
+      </button>
+    </div>
+  </motion.div>
+)}
+
 
         </AnimatePresence>
       </div>
