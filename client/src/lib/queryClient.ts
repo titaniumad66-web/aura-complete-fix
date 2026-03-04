@@ -1,5 +1,64 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+const AUTH_TOKEN_KEY = "auth_token";
+const AUTH_EVENT = "auth-changed";
+
+export type AuthPayload = {
+  id?: string;
+  role?: string;
+  exp?: number;
+};
+
+function parseJwt(token: string): AuthPayload | null {
+  try {
+    const encoded = token.split(".")[1];
+    if (!encoded) return null;
+    const normalized = encoded.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+    const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+    const payload = JSON.parse(new TextDecoder().decode(bytes));
+    return payload as AuthPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function getAuthToken() {
+  return sessionStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function setAuthToken(token: string) {
+  sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+  window.dispatchEvent(new Event(AUTH_EVENT));
+}
+
+export function clearAuthToken() {
+  sessionStorage.removeItem(AUTH_TOKEN_KEY);
+  window.dispatchEvent(new Event(AUTH_EVENT));
+}
+
+export function isTokenExpired(token: string) {
+  const payload = parseJwt(token);
+  if (!payload?.exp) return false;
+  return Date.now() >= payload.exp * 1000;
+}
+
+export function getValidAuthToken() {
+  const token = getAuthToken();
+  if (!token) return null;
+  if (isTokenExpired(token)) {
+    clearAuthToken();
+    return null;
+  }
+  return token;
+}
+
+export function getAuthPayload() {
+  const token = getValidAuthToken();
+  if (!token) return null;
+  return parseJwt(token);
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -12,9 +71,13 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const token = getValidAuthToken();
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(data ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -29,7 +92,9 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const token = getValidAuthToken();
     const res = await fetch(queryKey.join("/") as string, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: "include",
     });
 

@@ -62,3 +62,24 @@ export const insertWebsiteSchema = createInsertSchema(websites).pick({
 
 export type InsertWebsite = z.infer<typeof insertWebsiteSchema>;
 export type Website = typeof websites.$inferSelect;
+
+
+// ================= TEMPLATES TABLE =================
+export const templates = pgTable("templates", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
+  title: text("title").notNull(),
+  imageUrl: text("image_url").notNull(),
+
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTemplateSchema = createInsertSchema(templates).pick({
+  title: true,
+  imageUrl: true,
+});
+
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
+export type Template = typeof templates.$inferSelect;

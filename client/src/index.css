@@ -85,10 +85,27 @@
     @apply border-border;
   }
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-background text-foreground break-words;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif tracking-tight text-foreground;
+  }
+}
+
+/* Mobile safety: prevent sideways scroll and ensure media scale */
+html, body {
+  overflow-x: hidden;
+}
+
+img, video, canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  button {
+    min-height: 44px;
   }
 }
 

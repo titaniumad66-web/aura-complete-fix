@@ -5,7 +5,8 @@ import {
   ChevronRight, ChevronLeft, CheckCircle2, Loader2, PlayCircle, Eye,
   Music, Heart, Gift, Crown, Smile, Cloud, Download, Lock, MapPin, Play, Pause, Calendar
 } from "lucide-react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
+import { getValidAuthToken } from "@/lib/queryClient";
 
 // Components
 import { Input } from "@/components/ui/input";
@@ -27,8 +28,102 @@ interface Memory {
   date: string;
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function encodePreviewPayload(payload: unknown) {
+  const json = JSON.stringify(payload);
+  const bytes = new TextEncoder().encode(json);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function generatePublishId(length = 6) {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let id = "";
+  for (let i = 0; i < length; i++) {
+    id += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return id;
+}
+
+function normalizeSlug(input: string) {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getThemePalette(themeId: string) {
+  switch (themeId) {
+    case "royal":
+      return {
+        background: "linear-gradient(180deg, #0f172a, #1e293b 50%, #0f172a)",
+        accent: "#facc15",
+        text: "#f8fafc",
+        card: "rgba(15, 23, 42, 0.8)",
+      };
+    case "minimal":
+      return {
+        background: "linear-gradient(180deg, #ffffff, #f8fafc 60%, #e2e8f0)",
+        accent: "#0f172a",
+        text: "#0f172a",
+        card: "rgba(255, 255, 255, 0.85)",
+      };
+    case "emotional":
+      return {
+        background: "linear-gradient(180deg, #fff7ed, #ffedd5 45%, #fef2f2)",
+        accent: "#ea580c",
+        text: "#3b1d1d",
+        card: "rgba(255, 255, 255, 0.75)",
+      };
+    case "funny":
+      return {
+        background: "linear-gradient(180deg, #fef9c3, #fef08a 50%, #ecfccb)",
+        accent: "#65a30d",
+        text: "#3f6212",
+        card: "rgba(255, 255, 255, 0.75)",
+      };
+    case "pastel":
+      return {
+        background: "linear-gradient(180deg, #fce7f3, #e0e7ff 55%, #faf5ff)",
+        accent: "#9333ea",
+        text: "#4c1d95",
+        card: "rgba(255, 255, 255, 0.75)",
+      };
+    case "romantic":
+    default:
+      return {
+        background: "linear-gradient(180deg, #ffe4e6, #fbcfe8 55%, #fef3c7)",
+        accent: "#db2777",
+        text: "#3f1d2a",
+        card: "rgba(255, 255, 255, 0.78)",
+      };
+  }
+}
+
 export default function CreateWebsite() {
   const [step, setStep] = useState<Step>("welcome");
+  const [, setLocation] = useLocation();
   
   // Form State
   const [name, setName] = useState("");
@@ -41,7 +136,27 @@ export default function CreateWebsite() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [createdWebsiteId, setCreatedWebsiteId] = useState<string | null>(null);
+  const [websiteLinkName, setWebsiteLinkName] = useState("");
+  const [publishError, setPublishError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const musicInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedMusicBase64, setUploadedMusicBase64] = useState<string | null>(
+    null
+  );
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  useEffect(() => {
+    const context = {
+      name,
+      relationship,
+      theme,
+      confessionMode,
+      memoriesCount: memories.length,
+      message,
+    };
+    sessionStorage.setItem("aura_ai_context", JSON.stringify(context));
+    window.dispatchEvent(new Event("aura-ai-context"));
+  }, [name, relationship, theme, confessionMode, memories.length, message]);
 
   const themes = [
     { id: "romantic", name: "Romantic", icon: Heart, desc: "Deep reds, elegant serifs, soft fades", color: "bg-red-50 border-red-200 text-red-700" },
@@ -60,32 +175,49 @@ export default function CreateWebsite() {
   ];
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (!e.target.files) return;
+    const input = e.currentTarget;
+    if (!input.files) return;
 
-  const files = Array.from(e.target.files);
+    const files = Array.from(input.files);
 
-  for (const file of files) {
-    const formData = new FormData();
-    formData.append("image", file);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const dataUrl = await fileToDataUrl(file);
 
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-
-    setMemories(prev => [
-      ...prev,
-      {
-        id: Math.random().toString(36).substring(2),
-        image: data.url,
-        caption: "",
-        date: new Date().toISOString().split("T")[0],
+        setMemories((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(36).substring(2),
+            image: dataUrl,
+            caption: "",
+            date: new Date().toISOString().split("T")[0],
+          },
+        ]);
       }
-    ]);
-  }
-};
+    } catch (err) {
+      alert("Failed to process one of the images. Please try again.");
+    } finally {
+      // allow selecting the same file again
+      input.value = "";
+    }
+  };
+
+  const handleMusicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setUploadedMusicBase64(dataUrl);
+    } catch (err) {
+      alert("Failed to process the audio file. Please try again.");
+    } finally {
+      // allow selecting the same file again
+      input.value = "";
+    }
+  };
   function updateMemory(id: string, field: keyof Memory, value: string) {
     setMemories(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
   }
@@ -94,11 +226,192 @@ export default function CreateWebsite() {
     setMessage("Every memory we've created together is a treasure I hold close to my heart. On this special day, I want to remind you of how uniquely beautiful your soul is, and how much light you bring into my world. Happy Birthday, may your day be as extraordinary as you are.");
   };
 
+  const createDownloadHtml = () => {
+    const palette = getThemePalette(theme);
+    const safeName = escapeHtml(name || "Birthday Star");
+    const safeRelationship = escapeHtml(relationship || "");
+    const safeMessage = escapeHtml(message || "");
+    const safeMemories = memories.map((memory) => ({
+      image: memory.image,
+      caption: escapeHtml(memory.caption || ""),
+      date: escapeHtml(memory.date || ""),
+    }));
+    const musicSrc =
+      uploadedMusicBase64 ??
+      (music ? `${window.location.origin}/music/${music}.mp3` : "");
+
+    const memoryCards = safeMemories
+      .map(
+        (memory) => `
+          <article class="memory-card">
+            <div class="memory-image">
+              <img src="${escapeHtml(memory.image)}" alt="${memory.caption || "Memory"}" />
+            </div>
+            <div class="memory-content">
+              <div class="memory-caption">${memory.caption}</div>
+              <div class="memory-date">${memory.date}</div>
+            </div>
+          </article>
+        `
+      )
+      .join("");
+
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${safeName}'s Birthday Website</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: "Inter", "Segoe UI", sans-serif; background: ${palette.background}; color: ${palette.text}; min-height: 100vh; }
+      .hero { padding: 90px 24px 70px; text-align: left; position: relative; overflow: hidden; }
+      .hero-inner { max-width: 1100px; margin: 0 auto; display: grid; gap: 40px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: center; }
+      .hero-title { font-size: clamp(36px, 6vw, 72px); font-family: "Georgia", serif; line-height: 1.05; }
+      .hero-subtitle { margin-top: 16px; font-size: 18px; opacity: 0.85; max-width: 520px; }
+      .hero-card { background: ${palette.card}; border-radius: 28px; padding: 32px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12); backdrop-filter: blur(12px); }
+      .hero-tag { display: inline-flex; padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,0.7); color: ${palette.accent}; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+      .message { margin-top: 18px; font-size: 18px; line-height: 1.7; white-space: pre-wrap; }
+      .section { padding: 70px 24px 90px; }
+      .section-inner { max-width: 1100px; margin: 0 auto; }
+      .section-title { font-family: "Georgia", serif; font-size: clamp(28px, 4vw, 42px); text-align: center; margin-bottom: 16px; }
+      .section-subtitle { text-align: center; opacity: 0.7; margin-bottom: 40px; }
+      .memories { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+      .memory-card { background: ${palette.card}; border-radius: 24px; overflow: hidden; box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12); }
+      .memory-image img { width: 100%; height: 220px; object-fit: cover; display: block; }
+      .memory-content { padding: 20px; display: grid; gap: 6px; }
+      .memory-caption { font-weight: 600; }
+      .memory-date { font-size: 13px; opacity: 0.7; }
+      .footer { padding: 28px 24px 50px; text-align: center; font-size: 14px; opacity: 0.65; }
+      .audio { margin-top: 16px; width: 100%; }
+    </style>
+  </head>
+  <body>
+    <section class="hero">
+      <div class="hero-inner">
+        <div>
+          <div class="hero-tag">Birthday Surprise</div>
+          <h1 class="hero-title">Happy Birthday ${safeName}</h1>
+          <p class="hero-subtitle">A small corner of the internet made just for you.</p>
+        </div>
+        <div class="hero-card">
+          <h2>${safeRelationship ? `A message for ${safeName} (${safeRelationship})` : `A message for ${safeName}`}</h2>
+          <p class="message">${safeMessage}</p>
+          ${musicSrc ? `<audio class="audio" src="${escapeHtml(musicSrc)}" controls loop></audio>` : ""}
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-inner">
+        <h2 class="section-title">Memory Gallery</h2>
+        <p class="section-subtitle">Highlights captured in a simple grid.</p>
+        <div class="memories">
+          ${memoryCards || `<div class="section-subtitle">No memories added yet.</div>`}
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">Made with ❤️ using Aura</footer>
+  </body>
+</html>`;
+  };
+
+  const handleDownloadHtml = () => {
+    const html = createDownloadHtml();
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const baseName = normalizeSlug(websiteLinkName || `${name}-birthday`) || `birthday-site-${Date.now()}`;
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${baseName || "birthday-website"}.html`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleOpenPreview = () => {
+    if (createdWebsiteId) {
+      window.open(`/w/${createdWebsiteId}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    const d = encodePreviewPayload({
+      name,
+      relationship,
+      confessionMode,
+      message,
+      memories,
+      theme,
+      music: uploadedMusicBase64 ?? music,
+    });
+    window.open(`/preview?d=${encodeURIComponent(d)}`, "_blank", "noopener,noreferrer");
+  };
+
+  const handlePublishWebsite = async () => {
+    if (isPublishing) return;
+    setIsPublishing(true);
+    setPublishError(null);
+
+    const token = getValidAuthToken();
+    if (!token) {
+      setIsPublishing(false);
+      setLocation("/login");
+      return;
+    }
+    const effectiveMusic = uploadedMusicBase64 ?? music;
+
+    try {
+      const res = await fetch("/api/websites", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: websiteLinkName.trim()
+            ? `${websiteLinkName.trim()} — ${name}'s Birthday Website`
+            : `${name}'s Birthday Website`,
+          theme,
+          content: JSON.stringify({
+            name,
+            relationship,
+            confessionMode,
+            memories,
+            message,
+            theme,
+            music: effectiveMusic,
+          }),
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to publish website");
+      }
+
+      const data = await res.json();
+      setCreatedWebsiteId(data.id);
+      setLocation(`/w/${data.id}?published=1`);
+    } catch (err) {
+      setPublishError(
+        "Publishing failed. Please check your connection and try again."
+      );
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
  const handleGenerate = async () => {
   setStep("generating");
   setProgress(0);
 
-  const token = localStorage.getItem("token");
+  const token = getValidAuthToken();
+  if (!token) {
+    setStep("music");
+    setLocation("/login");
+    return;
+  }
 
   const interval = setInterval(() => {
     setProgress((prev) => {
@@ -126,7 +439,7 @@ export default function CreateWebsite() {
           confessionMode,
           memories,
           message,
-          music,
+          music: uploadedMusicBase64 ?? music,
         }),
       }),
     });
@@ -143,8 +456,10 @@ export default function CreateWebsite() {
     }, 500);
 
   } catch (error) {
-    console.error("Website creation error:", error);
     alert("Something went wrong while creating the website.");
+    clearInterval(interval);
+    setProgress(0);
+    setStep("music");
   }
 };
 
@@ -217,7 +532,8 @@ export default function CreateWebsite() {
                 ))}
               </div>
 
-              <button 
+              <button
+                type="button"
                 onClick={() => nextStep("recipient")}
                 className="bg-foreground text-background px-10 py-4 rounded-full font-medium text-lg hover:bg-foreground/90 transition-all flex items-center gap-2 mx-auto shadow-xl hover:-translate-y-1"
               >
@@ -275,10 +591,11 @@ export default function CreateWebsite() {
               </div>
 
               <div className="flex justify-between pt-10 mt-10 border-t border-border">
-                <button onClick={() => nextStep("welcome")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
+                <button type="button" onClick={() => nextStep("welcome")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button 
+                <button
+                  type="button"
                   onClick={() => nextStep("theme")}
                   disabled={!name || !relationship}
                   className="bg-foreground text-background px-8 py-3 rounded-full font-medium hover:bg-foreground/90 transition-all flex items-center gap-2 disabled:opacity-50"
@@ -322,10 +639,10 @@ export default function CreateWebsite() {
               </div>
 
               <div className="flex justify-between pt-10 mt-10 border-t border-border">
-                <button onClick={() => nextStep("recipient")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
+                <button type="button" onClick={() => nextStep("recipient")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => nextStep("memories")} className="bg-foreground text-background px-8 py-3 rounded-full font-medium hover:bg-foreground/90 transition-all flex items-center gap-2">
+                <button type="button" onClick={() => nextStep("memories")} className="bg-foreground text-background px-8 py-3 rounded-full font-medium hover:bg-foreground/90 transition-all flex items-center gap-2">
                   Next Step <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -340,7 +657,8 @@ export default function CreateWebsite() {
                   <h2 className="text-3xl font-serif font-medium mb-2">Build a Memory Timeline</h2>
                   <p className="text-muted-foreground">Upload photos and add dates to create a beautiful storytelling journey.</p>
                 </div>
-                <button 
+                <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="bg-primary/10 text-primary hover:bg-primary/20 px-6 py-3 rounded-full font-medium transition-colors flex items-center gap-2"
                 >
@@ -403,10 +721,10 @@ export default function CreateWebsite() {
               )}
 
               <div className="flex justify-between pt-10 mt-10 border-t border-border">
-                <button onClick={() => nextStep("theme")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
+                <button type="button" onClick={() => nextStep("theme")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => nextStep("message")} className="bg-foreground text-background px-8 py-3 rounded-full font-medium hover:bg-foreground/90 transition-all flex items-center gap-2">
+                <button type="button" onClick={() => nextStep("message")} className="bg-foreground text-background px-8 py-3 rounded-full font-medium hover:bg-foreground/90 transition-all flex items-center gap-2">
                   Next Step <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -438,10 +756,10 @@ export default function CreateWebsite() {
                   <p className="text-sm text-muted-foreground mb-6">Having trouble finding the words? Let our AI elevate your message based on your chosen theme ({themes.find(t=>t.id===theme)?.name}).</p>
                   
                   <div className="space-y-3 mt-auto">
-                    <button onClick={enhanceMessage} className="w-full bg-white border border-primary/30 text-primary py-3 rounded-xl text-sm font-medium hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-2">
+                    <button type="button" onClick={enhanceMessage} className="w-full bg-white border border-primary/30 text-primary py-3 rounded-xl text-sm font-medium hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-2">
                       <Sparkles className="w-4 h-4" /> Enhance Message
                     </button>
-                    <button onClick={() => setMessage("Happy Birthday! Wishing you a day filled with joy, laughter, and all your favorite things.")} className="w-full bg-white border border-border text-foreground py-3 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
+                    <button type="button" onClick={() => setMessage("Happy Birthday! Wishing you a day filled with joy, laughter, and all your favorite things.")} className="w-full bg-white border border-border text-foreground py-3 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
                       Keep it Simple
                     </button>
                   </div>
@@ -449,10 +767,10 @@ export default function CreateWebsite() {
               </div>
 
               <div className="flex justify-between pt-10 mt-10 border-t border-border">
-                <button onClick={() => nextStep("memories")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
+                <button type="button" onClick={() => nextStep("memories")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => nextStep("music")} className="bg-foreground text-background px-8 py-3 rounded-full font-medium hover:bg-foreground/90 transition-all flex items-center gap-2">
+                <button type="button" onClick={() => nextStep("music")} className="bg-foreground text-background px-8 py-3 rounded-full font-medium hover:bg-foreground/90 transition-all flex items-center gap-2">
                   Next Step <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -481,7 +799,8 @@ export default function CreateWebsite() {
                         <p className="text-sm text-muted-foreground">{t.desc}</p>
                       </div>
                     </div>
-                    <button 
+                    <button
+                      type="button"
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${music === t.id ? 'bg-primary/20 text-primary' : 'bg-secondary hover:bg-secondary/80'}`}
                       onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
                     >
@@ -495,16 +814,27 @@ export default function CreateWebsite() {
                 <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
                 <h4 className="font-medium mb-1">Have a special song?</h4>
                 <p className="text-sm text-muted-foreground mb-4">Upload your own MP3 file to make it truly personal.</p>
-                <button className="bg-white border border-border px-4 py-2 rounded-full text-sm font-medium shadow-sm hover:bg-secondary transition-colors">
+                <button
+                  type="button"
+                  onClick={() => musicInputRef.current?.click()}
+                  className="bg-white border border-border px-4 py-2 rounded-full text-sm font-medium shadow-sm hover:bg-secondary transition-colors"
+                >
                   Upload MP3
                 </button>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  ref={musicInputRef}
+                  onChange={handleMusicUpload}
+                />
               </div>
 
               <div className="flex justify-between pt-10 mt-10 border-t border-border">
-                <button onClick={() => nextStep("message")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
+                <button type="button" onClick={() => nextStep("message")} className="text-muted-foreground px-6 py-3 rounded-full font-medium hover:bg-secondary transition-colors flex items-center gap-2">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={handleGenerate} className="bg-primary text-white px-10 py-3 rounded-full font-medium hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg hover:shadow-primary/30 shadow-primary/20">
+                <button type="button" onClick={handleGenerate} className="bg-primary text-white px-10 py-3 rounded-full font-medium hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg hover:shadow-primary/30 shadow-primary/20">
                   Generate Website <Wand2 className="w-4 h-4" />
                 </button>
               </div>
@@ -566,19 +896,43 @@ export default function CreateWebsite() {
       />
     </div>
 
+    <div className="max-w-xl mx-auto space-y-2">
+      <label className="text-sm font-medium mb-2 block">Website Link Name</label>
+      <Input
+        value={websiteLinkName}
+        onChange={(e) => setWebsiteLinkName(e.target.value)}
+        placeholder="e.g., ishwari-birthday"
+        className="h-12 bg-white/60"
+      />
+      {publishError && (
+        <div className="text-sm font-medium text-red-600">{publishError}</div>
+      )}
+      {!publishError && (
+        <div className="text-xs text-muted-foreground">
+          Optional. If left blank, we&apos;ll generate a random link for you.
+        </div>
+      )}
+    </div>
+
     <div className="flex gap-4 justify-center">
       <button
-        onClick={() => {
-          if (createdWebsiteId) {
-            window.open(`/w/${createdWebsiteId}`, "_blank");
-          }
-        }}
+        type="button"
+        onClick={handleOpenPreview}
         className="bg-black text-white px-8 py-3 rounded-xl font-medium hover:bg-black/90 transition-all"
       >
         Fullscreen Preview
       </button>
 
       <button
+        type="button"
+        onClick={handlePublishWebsite}
+        className="bg-primary text-white px-8 py-3 rounded-xl font-medium hover:bg-primary/90 transition-all"
+      >
+        Publish Website
+      </button>
+
+      <button
+        type="button"
         onClick={() => setStep("recipient")}
         className="bg-gray-200 text-black px-8 py-3 rounded-xl font-medium hover:bg-gray-300 transition-all"
       >
@@ -586,11 +940,8 @@ export default function CreateWebsite() {
       </button>
 
       <button
-        onClick={() => {
-          if (createdWebsiteId) {
-            window.open(`/api/websites/${createdWebsiteId}/download`);
-          }
-        }}
+        type="button"
+        onClick={handleDownloadHtml}
         className="bg-white border px-8 py-3 rounded-xl font-medium hover:bg-gray-100 transition-all"
       >
         Download HTML/CSS
