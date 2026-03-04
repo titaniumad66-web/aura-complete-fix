@@ -134,13 +134,51 @@ export default function AIDynamicWebsites() {
     event.target.value = "";
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    let finalMessage = message;
+    let finalMemories = memories.slice();
+    try {
+      const tone =
+        theme === "funny"
+          ? "funny"
+          : theme === "minimal"
+          ? "minimal"
+          : theme === "romantic" || theme === "pastel" || theme === "emotional"
+          ? "romantic"
+          : "premium";
+
+      const res = await fetch("/api/ai/generate-birthday", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          relationship,
+          theme,
+          tone,
+          memories: memories.map((m) => ({ image: m.image, caption: m.caption || null })),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (!finalMessage || finalMessage.length < 40) {
+          finalMessage = typeof data?.message === "string" ? data.message : finalMessage;
+        }
+        const captions: string[] = Array.isArray(data?.captions) ? data.captions : [];
+        if (captions.length) {
+          finalMemories = finalMemories.map((m, i) => ({
+            ...m,
+            caption: m.caption && m.caption.length > 0 ? m.caption : captions[i] || m.caption,
+          }));
+        }
+      }
+    } catch {
+    }
     const payload = {
       name,
       relationship,
       confessionMode,
-      memories,
-      message,
+      memories: finalMemories,
+      message: finalMessage,
       theme,
       music: uploadedMusicBase64 ?? music,
     };

@@ -8,6 +8,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { nanoid } from "nanoid";
+import { generateBirthdayContent } from "./aiService";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -376,6 +377,33 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("AI Assistant Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/ai/generate-birthday", async (req, res) => {
+    try {
+      const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+      const relationship = typeof req.body?.relationship === "string" ? req.body.relationship.trim() : "";
+      const theme = typeof req.body?.theme === "string" ? req.body.theme.trim() : "";
+      const tone = typeof req.body?.tone === "string" ? req.body.tone.trim() : theme || relationship || "romantic";
+      const memories = Array.isArray(req.body?.memories) ? req.body.memories : [];
+
+      if (!name) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+
+      const result = await generateBirthdayContent({
+        name,
+        relationship,
+        theme,
+        tone,
+        memories,
+      });
+
+      return res.json(result);
+    } catch (error) {
+      console.error("AI Generate Birthday Error:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });

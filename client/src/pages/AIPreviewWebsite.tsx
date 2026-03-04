@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import { Link } from "wouter";
-import DynamicWebsiteTemplate from "@/templates/ai/DynamicWebsiteTemplate";
 import { templateConfigMap } from "@/templates/ai/templateConfigs";
+import RomanticLayout from "@/templates/ai/layouts/RomanticLayout";
+import MinimalLayout from "@/templates/ai/layouts/MinimalLayout";
+import PremiumLayout from "@/templates/ai/layouts/PremiumLayout";
+import FunLayout from "@/templates/ai/layouts/FunLayout";
 
 type MemoryItem = {
   image: string;
@@ -69,16 +72,53 @@ export default function AIPreviewWebsite() {
         : musicLabels[data.music] ?? data.music
       : undefined;
 
+  const theme = themeKey as string;
+  const musicSrc = typeof data.music === "string" && data.music.startsWith("data:") ? data.music : undefined;
+
+  if (theme === "romantic" || theme === "pastel" || theme === "emotional") {
+    return (
+      <RomanticLayout
+        name={data.name}
+        relationship={data.relationship}
+        message={data.message}
+        memories={data.memories}
+        musicSrc={musicSrc}
+        musicLabel={musicLabel}
+      />
+    );
+  }
+  if (theme === "minimal") {
+    return (
+      <MinimalLayout
+        name={data.name}
+        relationship={data.relationship}
+        message={data.message}
+        memories={data.memories}
+        musicSrc={musicSrc}
+        musicLabel={musicLabel}
+      />
+    );
+  }
+  if (theme === "royal") {
+    return (
+      <PremiumLayout
+        name={data.name}
+        relationship={data.relationship}
+        message={data.message}
+        memories={data.memories}
+        musicSrc={musicSrc}
+        musicLabel={musicLabel}
+      />
+    );
+  }
   return (
-    <DynamicWebsiteTemplate
-      config={config}
+    <FunLayout
       name={data.name}
       relationship={data.relationship}
-      confessionMode={Boolean(data.confessionMode)}
       message={data.message}
       memories={data.memories}
+      musicSrc={musicSrc}
       musicLabel={musicLabel}
-      onCelebrate={() => null}
     />
   );
 }
