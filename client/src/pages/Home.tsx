@@ -507,14 +507,13 @@ function AISection() {
               A smart assistant that helps you design the perfect birthday surprise with
               theme guidance, message polish, and creative ideas.
             </p>
-            <Link href="/create">
-              <button
-                type="button"
-                className="h-12 w-full sm:w-auto rounded-full bg-gradient-to-r from-violet-600 to-pink-500 px-8 text-white font-medium shadow-lg transition-all hover:opacity-95"
-              >
-                Try Aura AI <ArrowRight className="h-4 w-4" />
-              </button>
-            </Link>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("aura-ai-open"))}
+              className="h-12 w-full sm:w-auto rounded-full bg-gradient-to-r from-violet-600 to-pink-500 px-8 text-white font-medium shadow-lg transition-all hover:opacity-95"
+            >
+              Try Aura AI <ArrowRight className="h-4 w-4" />
+            </button>
           </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 18 }}

@@ -56,7 +56,12 @@ export default function AuraAI() {
     readContext();
     const handleContext = () => readContext();
     window.addEventListener("aura-ai-context", handleContext);
-    return () => window.removeEventListener("aura-ai-context", handleContext);
+    const open = () => setIsOpen(true);
+    window.addEventListener("aura-ai-open", open);
+    return () => {
+      window.removeEventListener("aura-ai-context", handleContext);
+      window.removeEventListener("aura-ai-open", open);
+    };
   }, []);
 
   const handleSend = async () => {

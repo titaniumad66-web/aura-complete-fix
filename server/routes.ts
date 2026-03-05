@@ -487,15 +487,16 @@ export async function registerRoutes(
   // =========================
   app.post("/api/aura-ai/chat", async (req, res) => {
     try {
-      const apiKey = process.env.AI_API_KEY;
+      const apiKey = process.env.OPENAI_API_KEY || process.env.AI_API_KEY;
       if (!apiKey) {
-        return res.status(503).json({ message: "AI service unavailable" });
+        console.error("Aura AI Chat Error: missing OPENAI_API_KEY");
+        return res.json({ reply: "Sorry, Aura AI is temporarily unavailable." });
       }
       const userMessage = typeof req.body?.message === "string" ? req.body.message.trim() : "";
       const history = Array.isArray(req.body?.history) ? req.body.history : [];
       const ctx = req.body?.context && typeof req.body.context === "object" ? req.body.context : null;
       if (!userMessage) {
-        return res.status(400).json({ message: "Message is required" });
+        return res.status(400).json({ reply: "Please enter a message to chat with Aura AI." });
       }
 
       const systemPrompt =
@@ -550,7 +551,7 @@ export async function registerRoutes(
       if (!resp.ok) {
         const errText = await resp.text().catch(() => "");
         console.error("Aura AI API Error:", resp.status, errText);
-        return res.status(502).json({ message: "AI service error" });
+        return res.json({ reply: "Sorry, Aura AI is temporarily unavailable." });
       }
       const data = await resp.json();
       const reply =
@@ -559,7 +560,7 @@ export async function registerRoutes(
       return res.json({ reply });
     } catch (error) {
       console.error("Aura AI Chat Error:", error);
-      return res.status(500).json({ message: "Server error" });
+      return res.json({ reply: "Sorry, Aura AI is temporarily unavailable." });
     }
   });
   // =========================
