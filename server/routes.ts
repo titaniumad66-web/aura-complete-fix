@@ -481,6 +481,87 @@ export async function registerRoutes(
       return res.status(500).json({ message: "Server error" });
     }
   });
+
+  // =========================
+  // AURA AI CHAT (REAL API)
+  // =========================
+  app.post("/api/aura-ai/chat", async (req, res) => {
+    try {
+      const apiKey = process.env.AI_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ message: "AI service unavailable" });
+      }
+      const userMessage = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+      const history = Array.isArray(req.body?.history) ? req.body.history : [];
+      const ctx = req.body?.context && typeof req.body.context === "object" ? req.body.context : null;
+      if (!userMessage) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const systemPrompt =
+        "You are Aura AI, the assistant inside the Aura platform. Aura allows users to create AI-powered birthday websites. Users can generate websites, choose templates, customize sections, and share links. Help users with creating websites, choosing templates, editing content, improving birthday messages, fixing design issues, and suggesting improvements. Be friendly, clear, and guide step-by-step.";
+
+      const contextLines = [];
+      if (ctx && typeof ctx === "object") {
+        const name = typeof ctx.name === "string" ? ctx.name : undefined;
+        const relationship = typeof ctx.relationship === "string" ? ctx.relationship : undefined;
+        const theme = typeof ctx.theme === "string" ? ctx.theme : undefined;
+        const confessionMode =
+          typeof ctx.confessionMode === "boolean" ? (ctx.confessionMode ? "on" : "off") : undefined;
+        const memoriesCount =
+          typeof ctx.memoriesCount === "number" ? String(ctx.memoriesCount) : undefined;
+        const message = typeof ctx.message === "string" ? ctx.message : undefined;
+        if (name) contextLines.push(`Recipient name: ${name}`);
+        if (relationship) contextLines.push(`Relationship: ${relationship}`);
+        if (theme) contextLines.push(`Selected theme: ${theme}`);
+        if (confessionMode) contextLines.push(`Confession mode: ${confessionMode}`);
+        if (memoriesCount) contextLines.push(`Memories count: ${memoriesCount}`);
+        if (message && message.length > 0) contextLines.push(`Draft message: ${message}`);
+      }
+      const systemWithContext =
+        contextLines.length > 0
+          ? `${systemPrompt}\n\nContext:\n${contextLines.map((l) => `- ${l}`).join("\n")}`
+          : systemPrompt;
+
+      const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+        { role: "system", content: systemWithContext },
+      ];
+      for (const m of history) {
+        const role = m?.role === "assistant" ? "assistant" : m?.role === "user" ? "user" : null;
+        const content = typeof m?.content === "string" ? m.content : null;
+        if (role && content) {
+          messages.push({ role, content });
+        }
+      }
+      messages.push({ role: "user", content: userMessage });
+
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages,
+          temperature: 0.7,
+        }),
+      });
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => "");
+        console.error("Aura AI API Error:", resp.status, errText);
+        return res.status(502).json({ message: "AI service error" });
+      }
+      const data = await resp.json();
+      const reply =
+        data?.choices?.[0]?.message?.content ||
+        "I’m here to help with themes, messages, and builder guidance. Ask me anything.";
+      return res.json({ reply });
+    } catch (error) {
+      console.error("Aura AI Chat Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
   // =========================
 // GET WEBSITE BY ID (PUBLIC)
 // =========================

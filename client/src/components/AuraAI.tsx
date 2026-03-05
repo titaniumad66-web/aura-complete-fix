@@ -72,10 +72,14 @@ export default function AuraAI() {
     setIsSending(true);
 
     try {
-      const res = await fetch("/api/ai-assistant", {
+      const res = await fetch("/api/aura-ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, context }),
+        body: JSON.stringify({
+          message: trimmed,
+          context,
+          history: messages.map((m) => ({ role: m.role, content: m.content })),
+        }),
       });
       if (!res.ok) {
         throw new Error("Failed to get response");
@@ -88,7 +92,7 @@ export default function AuraAI() {
           role: "assistant",
           content:
             data.reply ||
-            "I’m here to help with vibes, messages, and builder guidance. Ask me anything.",
+            "I’m here to help with themes, messages, and builder guidance. Ask me anything.",
         },
       ]);
     } catch {
