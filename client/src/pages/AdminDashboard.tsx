@@ -9,6 +9,18 @@ type TemplateItem = {
 };
 
 export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const qs = new URLSearchParams(window.location.search);
+    return qs.get("tab") || "dashboard";
+  });
+  useEffect(() => {
+    const onPop = () => {
+      const qs = new URLSearchParams(window.location.search);
+      setActiveTab(qs.get("tab") || "dashboard");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -344,6 +356,7 @@ export default function AdminDashboard() {
           </p>
         </div>
 
+        {activeTab === "dashboard" && (
         <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
           <h2 className="text-2xl font-serif font-medium mb-4">
             Admin Template Manager
@@ -386,7 +399,9 @@ export default function AdminDashboard() {
             <div className="mt-4 text-sm text-red-600">{error}</div>
           )}
         </div>
+        )}
 
+        {activeTab === "analytics" && (
         <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
           <h2 className="text-2xl font-serif font-medium mb-4">Platform Analytics</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -412,7 +427,9 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+        )}
 
+        {activeTab === "images" && (
         <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
           <h2 className="text-2xl font-serif font-medium mb-4">Image Manager</h2>
           <p className="text-muted-foreground mb-6">
@@ -488,7 +505,9 @@ export default function AdminDashboard() {
             })}
           </div>
         </div>
+        )}
 
+        {activeTab === "pricing" && (
         <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
           <h2 className="text-2xl font-serif font-medium mb-4">Pricing Management</h2>
           <div className="grid gap-4 md:grid-cols-3">
@@ -517,7 +536,9 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
+        )}
 
+        {activeTab === "payments" && (
         <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-2xl font-serif font-medium">Payments</h2>
@@ -608,7 +629,9 @@ export default function AdminDashboard() {
             })}
           </div>
         </div>
+        )}
 
+        {activeTab === "templates" && (
         <div className="space-y-4">
           <h3 className="text-xl font-serif font-medium">Existing Templates</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
@@ -647,6 +670,14 @@ export default function AdminDashboard() {
           ))}
           </div>
         </div>
+        )}
+
+        {activeTab === "users" && (
+          <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
+            <h2 className="text-2xl font-serif font-medium mb-2">Users</h2>
+            <p className="text-sm text-muted-foreground">User management is coming soon. Analytics above includes total users.</p>
+          </div>
+        )}
       </div>
     </div>
   );

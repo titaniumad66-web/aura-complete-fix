@@ -148,6 +148,9 @@ export function Navbar() {
                 <Link href="/admin" onClick={() => setMenuOpen(false)} className="px-5 py-3 text-sm font-medium hover:bg-secondary/50">
                   Dashboard
                 </Link>
+                <Link href="/admin?tab=users" onClick={() => setMenuOpen(false)} className="px-5 py-3 text-sm font-medium hover:bg-secondary/50">
+                  Users
+                </Link>
                 <Link href="/admin?tab=payments" onClick={() => setMenuOpen(false)} className="px-5 py-3 text-sm font-medium hover:bg-secondary/50">
                   Payments
                 </Link>

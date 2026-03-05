@@ -212,19 +212,8 @@ export async function registerRoutes(
     try {
       const { title, theme, content } = req.body;
 
-      // Admins bypass monetization checks
-      if (req.user?.role !== "admin") {
-        const websitesCount = await storage.getUserWebsiteCount(req.user.id);
-        if (websitesCount >= 1) {
-          const approvedCount = await storage.getApprovedPurchaseCount(
-            req.user.id,
-            "website_creation",
-          );
-          if (websitesCount - 1 >= approvedCount) {
-            return res.status(402).json({ message: "Payment required" });
-          }
-        }
-      }
+      // TEMPORARY: Monetization disabled — allow all creations without gating
+      // Original checks preserved for future re-enable.
 
       const website = await storage.createWebsite({
         userId: req.user.id,
@@ -233,12 +222,7 @@ export async function registerRoutes(
         content,
       });
 
-      if (req.user?.role !== "admin") {
-        const websitesCount = await storage.getUserWebsiteCount(req.user.id);
-        if (websitesCount === 1) {
-          await storage.setUserFreeUsed(req.user.id);
-        }
-      }
+      // Free usage tracking disabled during monetization pause
 
       return res.status(201).json(website);
     } catch (error) {
@@ -625,19 +609,7 @@ app.get("/api/websites/:id", async (req, res) => {
   // =========================
   app.get("/api/monetization/check", verifyToken, async (req: any, res) => {
     try {
-      if (req.user?.role === "admin") {
-        return res.json({ allowed: true, reason: "admin" });
-      }
-      const count = await storage.getUserWebsiteCount(req.user.id);
-      if (count === 0) {
-        return res.json({ allowed: true, reason: "free" });
-      }
-      const approved = await storage.getApprovedPurchaseCount(req.user.id, "website_creation");
-      const remaining = approved - (count - 1);
-      if (remaining > 0) {
-        return res.json({ allowed: true, reason: "approved", remaining });
-      }
-      return res.json({ allowed: false, reason: "payment_required" });
+      return res.json({ payment_required: false, reason: "disabled" });
     } catch (error) {
       console.error("Monetization Check Error:", error);
       return res.status(500).json({ message: "Server error" });
@@ -666,19 +638,7 @@ app.get("/api/websites/:id", async (req, res) => {
     paymentUpload.single("screenshot"),
     async (req: any, res) => {
       try {
-        const productType =
-          typeof req.body?.product_type === "string" ? req.body.product_type : "website_creation";
-        const amount = typeof req.body?.amount === "string" ? req.body.amount : "49";
-        const screenshotUrl = req.file ? `/payments/${req.file.filename}` : undefined;
-
-        const purchase = await storage.createPurchase({
-          userId: req.user.id,
-          productType,
-          amount,
-          paymentStatus: "approved",
-          paymentScreenshot: screenshotUrl,
-        });
-        return res.status(201).json(purchase);
+        return res.status(200).json({ message: "Payments disabled temporarily" });
       } catch (error) {
         console.error("Create Purchase Error:", error);
         return res.status(500).json({ message: "Server error" });

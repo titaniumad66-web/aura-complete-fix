@@ -119,7 +119,7 @@ function App(): JSX.Element {
       <TooltipProvider>
         <div className="min-h-screen flex flex-col bg-background text-foreground">
           <Navbar />
-          <main className="flex-1">
+          <main className="flex-1 pt-20 md:pt-24">
             <Router />
           </main>
         </div>

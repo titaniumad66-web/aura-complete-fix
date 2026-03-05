@@ -410,22 +410,6 @@ export default function CreateWebsite() {
     setLocation("/login");
     return;
   }
-  // Check monetization only when user clicks generate
-  try {
-    const check = await fetch("/api/monetization/check", {
-      headers: { Authorization: `Bearer ${token}` },
-      credentials: "include",
-    });
-    if (check.ok) {
-      const data = await check.json();
-      if (data && data.allowed === false) {
-        setLocation("/pay");
-        return;
-      }
-    }
-  } catch {
-    // On error, proceed to server-side enforcement fallback
-  }
 
   setStep("generating");
   setProgress(0);
@@ -460,15 +444,6 @@ export default function CreateWebsite() {
         }),
       }),
     });
-
-    if (res.status === 402) {
-      // Payment required – redirect gracefully
-      clearInterval(interval);
-      setProgress(0);
-      setStep("music");
-      setLocation("/pay");
-      return;
-    }
 
     if (!res.ok) {
       throw new Error("Failed to create website");
