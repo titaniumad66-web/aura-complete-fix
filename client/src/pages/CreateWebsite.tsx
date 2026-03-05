@@ -145,27 +145,7 @@ export default function CreateWebsite() {
   );
   const [isPublishing, setIsPublishing] = useState(false);
 
-  useEffect(() => {
-    const run = async () => {
-      const token = getValidAuthToken();
-      if (!token) return;
-      const payload = getAuthPayload();
-      if (payload?.role === "admin") return; // Admins skip monetization redirect
-      try {
-        const res = await fetch("/api/monetization/check", {
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: "include",
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data && data.allowed === false) {
-          setLocation("/pay");
-        }
-      } catch {
-      }
-    };
-    run();
-  }, [setLocation]);
+  // Monetization: defer checks to the moment user generates the website for better UX
 
   useEffect(() => {
     const context = {
@@ -425,15 +405,30 @@ export default function CreateWebsite() {
   };
 
  const handleGenerate = async () => {
-  setStep("generating");
-  setProgress(0);
-
   const token = getValidAuthToken();
   if (!token) {
-    setStep("music");
     setLocation("/login");
     return;
   }
+  // Check monetization only when user clicks generate
+  try {
+    const check = await fetch("/api/monetization/check", {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
+    });
+    if (check.ok) {
+      const data = await check.json();
+      if (data && data.allowed === false) {
+        setLocation("/pay");
+        return;
+      }
+    }
+  } catch {
+    // On error, proceed to server-side enforcement fallback
+  }
+
+  setStep("generating");
+  setProgress(0);
 
   const interval = setInterval(() => {
     setProgress((prev) => {
@@ -466,17 +461,25 @@ export default function CreateWebsite() {
       }),
     });
 
+    if (res.status === 402) {
+      // Payment required – redirect gracefully
+      clearInterval(interval);
+      setProgress(0);
+      setStep("music");
+      setLocation("/pay");
+      return;
+    }
+
     if (!res.ok) {
       throw new Error("Failed to create website");
     }
 
-   const data = await res.json();
+    const data = await res.json();
     setCreatedWebsiteId(data.id);
 
     setTimeout(() => {
       setStep("preview");
     }, 500);
-
   } catch (error) {
     alert("Something went wrong while creating the website.");
     clearInterval(interval);

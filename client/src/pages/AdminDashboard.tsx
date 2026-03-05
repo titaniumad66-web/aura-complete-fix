@@ -19,6 +19,14 @@ export default function AdminDashboard() {
   const [pricingItems, setPricingItems] = useState<{ productName: string; price: string }[]>([]);
   const [pricingEdit, setPricingEdit] = useState<Record<string, string>>({});
   const [payments, setPayments] = useState<any[]>([]);
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "approved" | "pending">("all");
+  const [stats, setStats] = useState<{
+    users: number;
+    websites: number;
+    purchases: number;
+    revenueApproved: number;
+    pendingPayments: number;
+  } | null>(null);
 
   const fetchTemplates = async () => {
     try {
@@ -106,11 +114,12 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (status?: "approved" | "pending") => {
     try {
       const token = getValidAuthToken();
       if (!token) return;
-      const res = await fetch("/api/purchases?status=pending", {
+      const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+      const res = await fetch(`/api/purchases${qs}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return;
@@ -140,6 +149,22 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchPricing();
     fetchPayments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const token = getValidAuthToken();
+      if (!token) return;
+      const res = await fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      setStats(data);
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -363,6 +388,32 @@ export default function AdminDashboard() {
         </div>
 
         <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
+          <h2 className="text-2xl font-serif font-medium mb-4">Platform Analytics</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-2xl border border-border bg-white p-5 shadow">
+              <div className="text-xs uppercase tracking-[0.2em] text-purple-700/70">Total Users</div>
+              <div className="mt-2 text-3xl font-semibold">{stats?.users ?? "—"}</div>
+            </div>
+            <div className="rounded-2xl border border-border bg-white p-5 shadow">
+              <div className="text-xs uppercase tracking-[0.2em] text-purple-700/70">Websites</div>
+              <div className="mt-2 text-3xl font-semibold">{stats?.websites ?? "—"}</div>
+            </div>
+            <div className="rounded-2xl border border-border bg-white p-5 shadow">
+              <div className="text-xs uppercase tracking-[0.2em] text-purple-700/70">Payments</div>
+              <div className="mt-2 text-3xl font-semibold">{stats?.purchases ?? "—"}</div>
+            </div>
+            <div className="rounded-2xl border border-border bg-white p-5 shadow">
+              <div className="text-xs uppercase tracking-[0.2em] text-purple-700/70">Revenue</div>
+              <div className="mt-2 text-3xl font-semibold">₹{stats?.revenueApproved ?? 0}</div>
+            </div>
+            <div className="rounded-2xl border border-border bg-white p-5 shadow">
+              <div className="text-xs uppercase tracking-[0.2em] text-purple-700/70">Pending</div>
+              <div className="mt-2 text-3xl font-semibold">{stats?.pendingPayments ?? "—"}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
           <h2 className="text-2xl font-serif font-medium mb-4">Image Manager</h2>
           <p className="text-muted-foreground mb-6">
             Upload, replace, or delete images used across the website.
@@ -468,48 +519,93 @@ export default function AdminDashboard() {
         </div>
 
         <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
-          <h2 className="text-2xl font-serif font-medium mb-4">Payments</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-serif font-medium">Payments</h2>
+            <div className="inline-flex overflow-hidden rounded-full border border-border bg-white">
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentFilter("all");
+                  fetchPayments();
+                }}
+                className={`px-4 py-1.5 text-sm ${paymentFilter === "all" ? "bg-secondary/40" : ""}`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentFilter("approved");
+                  fetchPayments("approved");
+                }}
+                className={`px-4 py-1.5 text-sm ${paymentFilter === "approved" ? "bg-secondary/40" : ""}`}
+              >
+                Approved
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentFilter("pending");
+                  fetchPayments("pending");
+                }}
+                className={`px-4 py-1.5 text-sm ${paymentFilter === "pending" ? "bg-secondary/40" : ""}`}
+              >
+                Pending
+              </button>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {payments.map((p) => (
-              <div key={p.id} className="rounded-2xl border border-border bg-white p-4 shadow">
-                <div className="text-sm text-foreground/70">{p.productType}</div>
-                <div className="mt-1 text-lg font-semibold">₹{p.amount}</div>
-                {p.paymentScreenshot ? (
-                  <a
-                    href={p.paymentScreenshot}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 block rounded-xl border border-border"
-                  >
-                    <img
-                      src={p.paymentScreenshot}
-                      alt="screenshot"
-                      className="h-40 w-full rounded-xl object-cover"
-                    />
-                  </a>
-                ) : (
-                  <div className="mt-3 h-40 w-full rounded-xl border border-border grid place-content-center text-xs text-foreground/60">
-                    No screenshot
+            {payments.map((p) => {
+              const date = p.createdAt ? new Date(p.createdAt) : null;
+              const when = date ? date.toLocaleString() : "—";
+              return (
+                <div key={p.id} className="rounded-2xl border border-border bg-white p-4 shadow">
+                  <div className="text-xs uppercase tracking-[0.2em] text-purple-700/70">
+                    {p.productType}
                   </div>
-                )}
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => actPayment(p.id, "approve")}
-                    className="rounded-full bg-green-600 px-4 py-1.5 text-xs font-semibold text-white"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => actPayment(p.id, "reject")}
-                    className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-semibold text-white"
-                  >
-                    Reject
-                  </button>
+                  <div className="mt-1 text-lg font-semibold">₹{p.amount}</div>
+                  <div className="mt-1 text-sm text-foreground/80">User: {p.userEmail ?? "Unknown"}</div>
+                  <div className="mt-1 text-xs text-foreground/60">{when}</div>
+                  <div className="mt-1 text-xs uppercase tracking-widest">
+                    Status: <span className="font-semibold">{p.paymentStatus}</span>
+                  </div>
+                  {p.paymentScreenshot ? (
+                    <a
+                      href={p.paymentScreenshot}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 block rounded-xl border border-border"
+                    >
+                      <img
+                        src={p.paymentScreenshot}
+                        alt="screenshot"
+                        className="h-40 w-full rounded-xl object-cover"
+                      />
+                    </a>
+                  ) : (
+                    <div className="mt-3 h-40 w-full rounded-xl border border-border grid place-content-center text-xs text-foreground/60">
+                      No screenshot
+                    </div>
+                  )}
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => actPayment(p.id, "approve")}
+                      className="rounded-full bg-green-600 px-4 py-1.5 text-xs font-semibold text-white"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => actPayment(p.id, "reject")}
+                      className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-semibold text-white"
+                    >
+                      Reject
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

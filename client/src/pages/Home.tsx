@@ -160,6 +160,16 @@ function DynamicHeroImage() {
   );
 }
 
+function DynamicSectionImage({ section, alt }: { section: string; alt: string }) {
+  const url = useSiteImage(section);
+  if (!url) return null;
+  return (
+    <div className="rounded-[2rem] border border-purple-200/60 bg-white/70 p-2 shadow-xl backdrop-blur">
+      <img src={url} alt={alt} className="w-full rounded-[1.6rem] object-cover" />
+    </div>
+  );
+}
+
 type StepItem = { title: string; description: string; icon: ComponentType<{ className?: string }> };
 
 function StoryBlock({
@@ -341,6 +351,7 @@ function SocialTeasersSection() {
 }
 
 function AISection() {
+  const celebrationUrl = useSiteImage("celebration");
   return (
     <section className="min-h-screen flex items-center bg-gradient-to-b from-white via-[#faf7ff] to-[#fff5fa]">
       <div className="container mx-auto px-6 max-w-7xl py-24">
@@ -378,27 +389,37 @@ function AISection() {
             transition={{ duration: 0.9 }}
             className="rounded-[2.5rem] border border-purple-200/60 bg-white/70 p-4 sm:p-6 shadow-xl backdrop-blur"
           >
-            <div className="rounded-3xl border border-purple-200/60 bg-white p-5 shadow-lg">
-              <div className="text-sm font-semibold text-foreground">Aura AI ✨</div>
-              <p className="text-xs text-foreground/70">Your design assistant</p>
-              <div className="mt-4 space-y-3">
-                <div className="rounded-2xl bg-purple-50 px-4 py-2 text-sm text-foreground">
-                  Which vibe suits a romantic surprise?
+            {celebrationUrl ? (
+              <div className="rounded-[2rem] border border-purple-200/60 bg-white/70 p-2 shadow-xl backdrop-blur">
+                <img
+                  src={celebrationUrl}
+                  alt="Celebration"
+                  className="w-full rounded-[1.6rem] object-cover"
+                />
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-purple-200/60 bg-white p-5 shadow-lg">
+                <div className="text-sm font-semibold text-foreground">Aura AI ✨</div>
+                <p className="text-xs text-foreground/70">Your design assistant</p>
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-2xl bg-purple-50 px-4 py-2 text-sm text-foreground">
+                    Which vibe suits a romantic surprise?
+                  </div>
+                  <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-pink-500 px-4 py-2 text-sm text-white">
+                    Try Romantic or Pastel. Keep the message soft and heartfelt.
+                  </div>
+                  <div className="rounded-2xl bg-purple-50 px-4 py-2 text-sm text-foreground">
+                    Can you improve my birthday message?
+                  </div>
+                  <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-pink-500 px-4 py-2 text-sm text-white">
+                    Absolutely. I’ll craft a more emotional version for you.
+                  </div>
                 </div>
-                <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-pink-500 px-4 py-2 text-sm text-white">
-                  Try Romantic or Pastel. Keep the message soft and heartfelt.
-                </div>
-                <div className="rounded-2xl bg-purple-50 px-4 py-2 text-sm text-foreground">
-                  Can you improve my birthday message?
-                </div>
-                <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-pink-500 px-4 py-2 text-sm text-white">
-                  Absolutely. I’ll craft a more emotional version for you.
+                <div className="mt-4 flex items-center gap-2 rounded-full border border-purple-200/60 bg-white/70 px-3 py-2 text-xs text-foreground/70">
+                  Type your question...
                 </div>
               </div>
-              <div className="mt-4 flex items-center gap-2 rounded-full border border-purple-200/60 bg-white/70 px-3 py-2 text-xs text-foreground/70">
-                Type your question...
-              </div>
-            </div>
+            )}
           </motion.div>
         </div>
       </div>

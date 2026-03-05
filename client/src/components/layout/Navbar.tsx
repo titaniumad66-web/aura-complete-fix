@@ -7,6 +7,7 @@ export function Navbar() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -53,12 +54,31 @@ export function Navbar() {
           </Link>
           <Link href="/templates">Templates</Link>
           {userRole === "admin" && (
-            <Link
-              href="/admin"
-              className="rounded-full border border-border px-3 py-1 text-sm font-medium transition-colors hover:bg-secondary"
-            >
-              Edit Templates
-            </Link>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAdminOpen((v) => !v)}
+                className="rounded-full border border-border px-3 py-1 text-sm font-medium transition-colors hover:bg-secondary"
+              >
+                Admin
+              </button>
+              {adminOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-56 rounded-2xl border border-border bg-white shadow-xl overflow-hidden"
+                  onMouseLeave={() => setAdminOpen(false)}
+                >
+                  <div className="flex flex-col divide-y divide-border">
+                    <Link href="/admin" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50">Admin Dashboard</Link>
+                    <Link href="/admin?tab=users" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50">Users</Link>
+                    <Link href="/admin?tab=payments" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50">Payments</Link>
+                    <Link href="/admin?tab=pricing" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50">Pricing</Link>
+                    <Link href="/admin?tab=templates" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50">Templates Manager</Link>
+                    <Link href="/admin?tab=images" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50">Image Manager</Link>
+                    <Link href="/admin?tab=analytics" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50">Analytics</Link>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {userRole && (
@@ -122,6 +142,29 @@ export function Navbar() {
             >
               Login
             </Link>
+            {userRole === "admin" && (
+              <>
+                <div className="px-5 py-2 text-xs font-semibold text-muted-foreground">Admin</div>
+                <Link href="/admin" onClick={() => setMenuOpen(false)} className="px-5 py-3 text-sm font-medium hover:bg-secondary/50">
+                  Dashboard
+                </Link>
+                <Link href="/admin?tab=payments" onClick={() => setMenuOpen(false)} className="px-5 py-3 text-sm font-medium hover:bg-secondary/50">
+                  Payments
+                </Link>
+                <Link href="/admin?tab=pricing" onClick={() => setMenuOpen(false)} className="px-5 py-3 text-sm font-medium hover:bg-secondary/50">
+                  Pricing
+                </Link>
+                <Link href="/admin?tab=templates" onClick={() => setMenuOpen(false)} className="px-5 py-3 text-sm font-medium hover:bg-secondary/50">
+                  Templates
+                </Link>
+                <Link href="/admin?tab=images" onClick={() => setMenuOpen(false)} className="px-5 py-3 text-sm font-medium hover:bg-secondary/50">
+                  Image Manager
+                </Link>
+                <Link href="/admin?tab=analytics" onClick={() => setMenuOpen(false)} className="px-5 py-3 text-sm font-medium hover:bg-secondary/50">
+                  Analytics
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

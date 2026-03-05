@@ -63,6 +63,7 @@ export default function Payment() {
       }
       setSuccess(true);
       setFile(null);
+      setLocation("/create");
     } catch {
       setError("Failed to submit payment proof.");
     } finally {

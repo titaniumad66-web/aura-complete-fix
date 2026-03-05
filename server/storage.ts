@@ -38,10 +38,23 @@ export interface IStorage {
   getPricing(): Promise<Pricing[]>;
   upsertPricing(productName: string, price: string): Promise<Pricing>;
   createPurchase(data: InsertPurchase): Promise<Purchase>;
-  listPurchases(status?: string): Promise<Purchase[]>;
+  listPurchases(status?: string): Promise<
+    Array<
+      Purchase & {
+        userEmail?: string | null;
+      }
+    >
+  >;
   updatePurchaseStatus(id: string, status: string): Promise<void>;
   setUserFreeUsed(userId: string): Promise<void>;
   isUserFreeUsed(userId: string): Promise<boolean>;
+  getTotals(): Promise<{
+    users: number;
+    websites: number;
+    purchases: number;
+    revenueApproved: number;
+    pendingPayments: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -209,13 +222,46 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async listPurchases(status?: string): Promise<Purchase[]> {
+  async listPurchases(status?: string): Promise<
+    Array<
+      Purchase & {
+        userEmail?: string | null;
+      }
+    >
+  > {
     if (status) {
-      const result = await db.select().from(purchases).where(eq(purchases.paymentStatus, status)).orderBy(desc(purchases.createdAt));
-      return result;
+      const result = await db
+        .select({
+          id: purchases.id,
+          userId: purchases.userId,
+          productType: purchases.productType,
+          amount: purchases.amount,
+          paymentStatus: purchases.paymentStatus,
+          paymentScreenshot: purchases.paymentScreenshot,
+          createdAt: purchases.createdAt,
+          userEmail: users.email,
+        })
+        .from(purchases)
+        .leftJoin(users, eq(purchases.userId, users.id))
+        .where(eq(purchases.paymentStatus, status))
+        .orderBy(desc(purchases.createdAt));
+      return result as any;
     }
-    const result = await db.select().from(purchases).orderBy(desc(purchases.createdAt));
-    return result;
+    const result = await db
+      .select({
+        id: purchases.id,
+        userId: purchases.userId,
+        productType: purchases.productType,
+        amount: purchases.amount,
+        paymentStatus: purchases.paymentStatus,
+        paymentScreenshot: purchases.paymentScreenshot,
+        createdAt: purchases.createdAt,
+        userEmail: users.email,
+      })
+      .from(purchases)
+      .leftJoin(users, eq(purchases.userId, users.id))
+      .orderBy(desc(purchases.createdAt));
+    return result as any;
   }
 
   async updatePurchaseStatus(id: string, status: string): Promise<void> {
@@ -229,6 +275,34 @@ export class DatabaseStorage implements IStorage {
   async isUserFreeUsed(userId: string): Promise<boolean> {
     const result = await db.select({ v: users.freeWebsiteUsed }).from(users).where(eq(users.id, userId));
     return Boolean(result[0]?.v);
+  }
+
+  async getTotals(): Promise<{
+    users: number;
+    websites: number;
+    purchases: number;
+    revenueApproved: number;
+    pendingPayments: number;
+  }> {
+    const usersCount = await db.select({ c: count() }).from(users);
+    const websitesCount = await db.select({ c: count() }).from(websites);
+    const purchasesCount = await db.select({ c: count() }).from(purchases);
+    const pendingCount = await db
+      .select({ c: count() })
+      .from(purchases)
+      .where(eq(purchases.paymentStatus, "pending"));
+    const revenueRow = await db
+      .select({
+        s: sql<number>`COALESCE(SUM(CASE WHEN ${purchases.paymentStatus} = 'approved' THEN (${purchases.amount})::numeric ELSE 0 END), 0)`,
+      })
+      .from(purchases);
+    return {
+      users: Number(usersCount[0]?.c ?? 0),
+      websites: Number(websitesCount[0]?.c ?? 0),
+      purchases: Number(purchasesCount[0]?.c ?? 0),
+      revenueApproved: Number(revenueRow[0]?.s ?? 0),
+      pendingPayments: Number(pendingCount[0]?.c ?? 0),
+    };
   }
 }
 

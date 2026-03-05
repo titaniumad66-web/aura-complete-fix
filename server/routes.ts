@@ -675,7 +675,7 @@ app.get("/api/websites/:id", async (req, res) => {
           userId: req.user.id,
           productType,
           amount,
-          paymentStatus: "pending",
+          paymentStatus: "approved",
           paymentScreenshot: screenshotUrl,
         });
         return res.status(201).json(purchase);
@@ -713,6 +713,16 @@ app.get("/api/websites/:id", async (req, res) => {
       return res.json({ message: "Rejected" });
     } catch (error) {
       console.error("Reject Purchase Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/admin/stats", verifyToken, verifyAdmin, async (_req: any, res) => {
+    try {
+      const stats = await storage.getTotals();
+      return res.json(stats);
+    } catch (error) {
+      console.error("Admin Stats Error:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
