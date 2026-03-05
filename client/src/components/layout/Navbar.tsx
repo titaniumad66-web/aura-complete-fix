@@ -54,23 +54,40 @@ export function Navbar() {
           </Link>
           <Link href="/templates">Templates</Link>
           {userRole === "admin" && (
-            <>
-              <Link href="/admin" className="rounded-full border border-border px-3 py-1 text-sm font-medium transition-colors hover:bg-secondary">
-                Dashboard
-              </Link>
-              <Link href="/admin?tab=users" className="rounded-full border border-border px-3 py-1 text-sm font-medium transition-colors hover:bg-secondary">
-                Users
-              </Link>
-              <Link href="/admin?tab=templates" className="rounded-full border border-border px-3 py-1 text-sm font-medium transition-colors hover:bg-secondary">
-                Templates Manager
-              </Link>
-              <Link href="/admin?tab=images" className="rounded-full border border-border px-3 py-1 text-sm font-medium transition-colors hover:bg-secondary">
-                Image Manager
-              </Link>
-              <Link href="/admin?tab=analytics" className="rounded-full border border-border px-3 py-1 text-sm font-medium transition-colors hover:bg-secondary">
-                Analytics
-              </Link>
-            </>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAdminOpen((v) => !v)}
+                className="inline-flex items-center rounded-full border border-border bg-white/80 px-3 py-1 text-sm font-medium shadow-sm transition-all hover:bg-white hover:shadow-md"
+              >
+                Admin
+                <span className="ml-1.5 inline-block h-0 w-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-foreground/60" />
+              </button>
+              {adminOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-56 rounded-2xl border border-border bg-white shadow-2xl overflow-hidden"
+                  onMouseLeave={() => setAdminOpen(false)}
+                >
+                  <div className="flex flex-col divide-y divide-border">
+                    <Link href="/admin" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50 transition-colors">
+                      Dashboard
+                    </Link>
+                    <Link href="/admin?tab=users" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50 transition-colors">
+                      Users
+                    </Link>
+                    <Link href="/admin?tab=templates" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50 transition-colors">
+                      Templates Manager
+                    </Link>
+                    <Link href="/admin?tab=images" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50 transition-colors">
+                      Image Manager
+                    </Link>
+                    <Link href="/admin?tab=analytics" onClick={() => setAdminOpen(false)} className="px-4 py-3 text-sm hover:bg-secondary/50 transition-colors">
+                      Analytics
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {userRole && (

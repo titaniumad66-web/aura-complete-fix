@@ -183,7 +183,7 @@ export default function AIDynamicWebsites() {
       music: uploadedMusicBase64 ?? music,
     };
     sessionStorage.setItem("ai_preview_payload", JSON.stringify(payload));
-    setLocation("/ai-preview");
+    setLocation("/create");
   };
 
   return (

@@ -535,13 +535,28 @@ app.get("/api/websites/:id", async (req, res) => {
           .replace(/\s+/g, "-")
           .replace(/[^a-z0-9-]/g, "");
 
+        const list = await storage.getSiteImages(section);
         const imageUrl = `/assets/${section}/${req.file.filename}`;
-        const record = await storage.createSiteImage({
-          sectionName: section,
-          imageName: req.file.originalname,
-          imageUrl,
-        });
-        return res.status(201).json(record);
+        if (list.length > 0) {
+          const existing = list[0];
+          if (existing.imageUrl) {
+            const rel = existing.imageUrl.replace(/^\/assets\//, "");
+            const oldPath = path.resolve(assetsDir, rel);
+            fs.promises.unlink(oldPath).catch(() => null);
+          }
+          const updated = await storage.updateSiteImage(existing.id, {
+            imageName: req.file.originalname,
+            imageUrl,
+          });
+          return res.status(200).json(updated);
+        } else {
+          const record = await storage.createSiteImage({
+            sectionName: section,
+            imageName: req.file.originalname,
+            imageUrl,
+          });
+          return res.status(201).json(record);
+        }
       } catch (error) {
         console.error("Create Site Image Error:", error);
         return res.status(500).json({ message: "Server error" });

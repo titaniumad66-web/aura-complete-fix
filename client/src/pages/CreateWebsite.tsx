@@ -148,6 +148,34 @@ export default function CreateWebsite() {
   // Monetization: defer checks to the moment user generates the website for better UX
 
   useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("ai_preview_payload");
+      if (stored) {
+        const data = JSON.parse(stored);
+        if (typeof data?.name === "string") setName(data.name);
+        if (typeof data?.relationship === "string") setRelationship(data.relationship);
+        if (typeof data?.confessionMode === "boolean") setConfessionMode(data.confessionMode);
+        if (typeof data?.theme === "string") setTheme(data.theme);
+        if (Array.isArray(data?.memories)) {
+          const ms: Memory[] = data.memories.map((m: any) => ({
+            id: Math.random().toString(36).slice(2),
+            image: String(m.image || ""),
+            caption: String(m.caption || ""),
+            date: String(m.date || new Date().toISOString().split("T")[0]),
+          }));
+          setMemories(ms);
+        }
+        if (typeof data?.message === "string") setMessage(data.message);
+        if (typeof data?.music === "string") {
+          if (data.music.startsWith("data:")) setUploadedMusicBase64(data.music);
+          else setMusic(data.music);
+        }
+        setStep("message");
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     const context = {
       name,
       relationship,
@@ -228,6 +256,41 @@ export default function CreateWebsite() {
     setMessage("Every memory we've created together is a treasure I hold close to my heart. On this special day, I want to remind you of how uniquely beautiful your soul is, and how much light you bring into my world. Happy Birthday, may your day be as extraordinary as you are.");
   };
 
+  const regenerateWithAI = async () => {
+    try {
+      const tone =
+        theme === "funny"
+          ? "funny"
+          : theme === "minimal"
+          ? "minimal"
+          : theme === "romantic" || theme === "pastel" || theme === "emotional"
+          ? "romantic"
+          : "premium";
+      const res = await fetch("/api/ai/generate-birthday", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          relationship,
+          theme,
+          tone,
+          memories: memories.map((m) => ({ image: m.image, caption: m.caption || null })),
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (typeof data?.message === "string") setMessage(data.message);
+      const captions: string[] = Array.isArray(data?.captions) ? data.captions : [];
+      if (captions.length) {
+        setMemories((prev) =>
+          prev.map((m, i) => ({
+            ...m,
+            caption: m.caption && m.caption.length > 0 ? m.caption : captions[i] || m.caption,
+          })),
+        );
+      }
+    } catch {}
+  };
   const createDownloadHtml = () => {
     const palette = getThemePalette(theme);
     const safeName = escapeHtml(name || "Birthday Star");
@@ -761,6 +824,9 @@ export default function CreateWebsite() {
                     </button>
                     <button type="button" onClick={() => setMessage("Happy Birthday! Wishing you a day filled with joy, laughter, and all your favorite things.")} className="w-full bg-white border border-border text-foreground py-3 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
                       Keep it Simple
+                    </button>
+                    <button type="button" onClick={regenerateWithAI} className="w-full bg-black text-white py-3 rounded-xl text-sm font-medium hover:bg-black/90 transition-colors">
+                      Regenerate with AI
                     </button>
                   </div>
                 </div>

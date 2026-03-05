@@ -131,6 +131,7 @@ function HeroSection({ onPrimaryHref, onSecondaryHref }: HeroSectionProps) {
 
 function useSiteImage(section: string) {
   const [url, setUrl] = useState<string | null>(null);
+  const [version, setVersion] = useState<string | null>(null);
   useEffect(() => {
     let mounted = true;
     const run = async () => {
@@ -138,7 +139,11 @@ function useSiteImage(section: string) {
         const res = await fetch(`/api/site-images?section=${encodeURIComponent(section)}`);
         if (!res.ok) return;
         const data = await res.json();
-        if (mounted) setUrl(Array.isArray(data) && data.length ? data[0].imageUrl : null);
+        if (mounted) {
+          const first = Array.isArray(data) && data.length ? data[0] : null;
+          setUrl(first ? first.imageUrl : null);
+          setVersion(first?.createdAt || String(Date.now()));
+        }
       } catch {
         // ignore
       }
@@ -157,7 +162,7 @@ function useSiteImage(section: string) {
       window.removeEventListener("site-images-updated", onUpdated as any);
     };
   }, [section]);
-  return url;
+  return url ? `${url}${version ? `?v=${encodeURIComponent(version)}` : ""}` : null;
 }
 
 function DynamicHeroImage() {
