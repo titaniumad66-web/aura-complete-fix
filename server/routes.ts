@@ -15,6 +15,8 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   const templatesDir = path.resolve("server", "uploads", "templates");
+  const assetsDir = path.resolve("server", "uploads", "assets");
+  const paymentScreensDir = path.resolve("server", "uploads", "payments");
   const upload = multer({
     storage: multer.diskStorage({
       destination: async (_req, _file, cb) => {
@@ -38,6 +40,64 @@ export async function registerRoutes(
       cb(new Error("Only image uploads are allowed"));
     },
     limits: { fileSize: 5 * 1024 * 1024 },
+  });
+
+  // Dedicated upload for Image Manager with dynamic destination by section
+  const imageManagerUpload = multer({
+    storage: multer.diskStorage({
+      destination: async (req: any, _file, cb) => {
+        try {
+          const rawSection = typeof req.body?.section_name === "string" ? req.body.section_name : "";
+          const section = rawSection
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, "");
+          const dir = path.resolve(assetsDir, section || "misc");
+          await fs.promises.mkdir(dir, { recursive: true });
+          cb(null, dir);
+        } catch (error) {
+          cb(error as Error, assetsDir);
+        }
+      },
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `${nanoid()}${ext}`);
+      },
+    }),
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith("image/")) {
+        cb(null, true);
+        return;
+      }
+      cb(new Error("Only image uploads are allowed"));
+    },
+    limits: { fileSize: 6 * 1024 * 1024 },
+  });
+
+  const paymentUpload = multer({
+    storage: multer.diskStorage({
+      destination: async (_req, _file, cb) => {
+        try {
+          await fs.promises.mkdir(paymentScreensDir, { recursive: true });
+          cb(null, paymentScreensDir);
+        } catch (error) {
+          cb(error as Error, paymentScreensDir);
+        }
+      },
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `${nanoid()}${ext}`);
+      },
+    }),
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith("image/")) {
+        cb(null, true);
+        return;
+      }
+      cb(new Error("Only image uploads are allowed"));
+    },
+    limits: { fileSize: 6 * 1024 * 1024 },
   });
 
   // =========================
@@ -152,12 +212,24 @@ export async function registerRoutes(
     try {
       const { title, theme, content } = req.body;
 
+      const websitesCount = await storage.getUserWebsiteCount(req.user.id);
+      if (websitesCount >= 1) {
+        const approvedCount = await storage.getApprovedPurchaseCount(req.user.id, "website_creation");
+        if (websitesCount - 1 >= approvedCount) {
+          return res.status(402).json({ message: "Payment required" });
+        }
+      }
+
       const website = await storage.createWebsite({
         userId: req.user.id,
         title,
         theme,
         content,
       });
+
+      if (websitesCount === 0) {
+        await storage.setUserFreeUsed(req.user.id);
+      }
 
       return res.status(201).json(website);
     } catch (error) {
@@ -426,6 +498,237 @@ app.get("/api/websites/:id", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
+
+  // =========================
+  // SITE IMAGES (PUBLIC FETCH)
+  // =========================
+  app.get("/api/site-images", async (req, res) => {
+    try {
+      const section = typeof req.query?.section === "string" ? req.query.section : undefined;
+      const images = await storage.getSiteImages(section);
+      return res.json(images);
+    } catch (error) {
+      console.error("Get Site Images Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // =========================
+  // SITE IMAGES (ADMIN MANAGE)
+  // =========================
+  app.post(
+    "/api/site-images",
+    verifyToken,
+    verifyAdmin,
+    imageManagerUpload.single("image"),
+    async (req: any, res) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ message: "Image is required" });
+        }
+        const rawSection = typeof req.body?.section_name === "string" ? req.body.section_name : "";
+        const section = rawSection
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "");
+
+        const imageUrl = `/assets/${section}/${req.file.filename}`;
+        const record = await storage.createSiteImage({
+          sectionName: section,
+          imageName: req.file.originalname,
+          imageUrl,
+        });
+        return res.status(201).json(record);
+      } catch (error) {
+        console.error("Create Site Image Error:", error);
+        return res.status(500).json({ message: "Server error" });
+      }
+    },
+  );
+
+  app.put(
+    "/api/site-images/:id",
+    verifyToken,
+    verifyAdmin,
+    imageManagerUpload.single("image"),
+    async (req: any, res) => {
+      try {
+        const { id } = req.params;
+        const existing = await storage.getSiteImageById(id);
+        if (!existing) {
+          return res.status(404).json({ message: "Image not found" });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({ message: "Image is required" });
+        }
+
+        // Remove old file
+        if (existing.imageUrl) {
+          const rel = existing.imageUrl.replace(/^\/assets\//, "");
+          const oldPath = path.resolve(assetsDir, rel);
+          fs.promises.unlink(oldPath).catch(() => null);
+        }
+
+        const section = existing.sectionName;
+        const imageUrl = `/assets/${section}/${req.file.filename}`;
+        const updated = await storage.updateSiteImage(id, {
+          imageName: req.file.originalname,
+          imageUrl,
+        });
+        return res.json(updated);
+      } catch (error) {
+        console.error("Update Site Image Error:", error);
+        return res.status(500).json({ message: "Server error" });
+      }
+    },
+  );
+
+  app.delete(
+    "/api/site-images/:id",
+    verifyToken,
+    verifyAdmin,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const existing = await storage.getSiteImageById(id);
+        if (!existing) {
+          return res.status(404).json({ message: "Image not found" });
+        }
+
+        if (existing.imageUrl) {
+          const rel = existing.imageUrl.replace(/^\/assets\//, "");
+          const oldPath = path.resolve(assetsDir, rel);
+          fs.promises.unlink(oldPath).catch(() => null);
+        }
+        await storage.deleteSiteImage(id);
+        return res.json({ message: "Deleted" });
+      } catch (error) {
+        console.error("Delete Site Image Error:", error);
+        return res.status(500).json({ message: "Server error" });
+      }
+    },
+  );
+
+  // =========================
+  // MONETIZATION
+  // =========================
+  app.get("/api/monetization/check", verifyToken, async (req: any, res) => {
+    try {
+      const count = await storage.getUserWebsiteCount(req.user.id);
+      if (count === 0) {
+        return res.json({ allowed: true, reason: "free" });
+      }
+      const approved = await storage.getApprovedPurchaseCount(req.user.id, "website_creation");
+      const remaining = approved - (count - 1);
+      if (remaining > 0) {
+        return res.json({ allowed: true, reason: "approved", remaining });
+      }
+      return res.json({ allowed: false, reason: "payment_required" });
+    } catch (error) {
+      console.error("Monetization Check Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/monetization/info", async (_req: any, res) => {
+    try {
+      const prices = await storage.getPricing();
+      const websitePrice =
+        prices.find((p) => p.productName === "website_creation")?.price ?? "49";
+      const upiId = process.env.UPI_ID || "aura@upi";
+      const qr = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=Aura&am=${encodeURIComponent(
+        websitePrice,
+      )}&cu=INR`;
+      return res.json({ upiId, amount: websitePrice, qr });
+    } catch (error) {
+      console.error("Monetization Info Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post(
+    "/api/purchases",
+    verifyToken,
+    paymentUpload.single("screenshot"),
+    async (req: any, res) => {
+      try {
+        const productType =
+          typeof req.body?.product_type === "string" ? req.body.product_type : "website_creation";
+        const amount = typeof req.body?.amount === "string" ? req.body.amount : "49";
+        const screenshotUrl = req.file ? `/payments/${req.file.filename}` : undefined;
+
+        const purchase = await storage.createPurchase({
+          userId: req.user.id,
+          productType,
+          amount,
+          paymentStatus: "pending",
+          paymentScreenshot: screenshotUrl,
+        });
+        return res.status(201).json(purchase);
+      } catch (error) {
+        console.error("Create Purchase Error:", error);
+        return res.status(500).json({ message: "Server error" });
+      }
+    },
+  );
+
+  app.get("/api/purchases", verifyToken, verifyAdmin, async (req: any, res) => {
+    try {
+      const status = typeof req.query?.status === "string" ? req.query.status : undefined;
+      const items = await storage.listPurchases(status);
+      return res.json(items);
+    } catch (error) {
+      console.error("List Purchases Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/purchases/:id/approve", verifyToken, verifyAdmin, async (req: any, res) => {
+    try {
+      await storage.updatePurchaseStatus(req.params.id, "approved");
+      return res.json({ message: "Approved" });
+    } catch (error) {
+      console.error("Approve Purchase Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/purchases/:id/reject", verifyToken, verifyAdmin, async (req: any, res) => {
+    try {
+      await storage.updatePurchaseStatus(req.params.id, "rejected");
+      return res.json({ message: "Rejected" });
+    } catch (error) {
+      console.error("Reject Purchase Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/pricing", verifyToken, verifyAdmin, async (_req: any, res) => {
+    try {
+      const items = await storage.getPricing();
+      return res.json(items);
+    } catch (error) {
+      console.error("Get Pricing Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/pricing", verifyToken, verifyAdmin, async (req: any, res) => {
+    try {
+      const productName = typeof req.body?.product_name === "string" ? req.body.product_name : "";
+      const price = typeof req.body?.price === "string" ? req.body.price : "";
+      if (!productName || !price) {
+        return res.status(400).json({ message: "Invalid input" });
+      }
+      const item = await storage.upsertPricing(productName, price);
+      return res.json(item);
+    } catch (error) {
+      console.error("Upsert Pricing Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
 
   return httpServer;
 }

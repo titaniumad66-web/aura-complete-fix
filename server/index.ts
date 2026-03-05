@@ -33,10 +33,16 @@ app.use(
 
 const uploadsDir = path.resolve("server", "uploads");
 const templatesDir = path.resolve("server", "uploads", "templates");
+const assetsDir = path.resolve("server", "uploads", "assets");
+const paymentScreensDir = path.resolve("server", "uploads", "payments");
 fs.promises.mkdir(uploadsDir, { recursive: true }).catch(() => null);
 fs.promises.mkdir(templatesDir, { recursive: true }).catch(() => null);
+fs.promises.mkdir(assetsDir, { recursive: true }).catch(() => null);
+fs.promises.mkdir(paymentScreensDir, { recursive: true }).catch(() => null);
 
 app.use("/uploads", express.static("server/uploads"));
+app.use("/assets", express.static("server/uploads/assets"));
+app.use("/payments", express.static("server/uploads/payments"));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

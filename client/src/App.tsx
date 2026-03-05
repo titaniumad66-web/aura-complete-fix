@@ -21,6 +21,8 @@ import AllTemplates from "@/pages/AllTemplates";
 import WebsiteView from "@/pages/WebsiteView"; // ✅ ADD THIS
 import NotFound from "@/pages/not-found";
 import AuraAI from "@/components/AuraAI";
+import Dashboard from "@/pages/Dashboard";
+import Payment from "@/pages/Payment";
 
 // 🔒 Protected Route (Logged in users only)
 function ProtectedRoute({ component: Component }: any) {
@@ -77,6 +79,12 @@ function Router() {
       <Route path="/admin">
         {() => <AdminRoute component={AdminDashboard} />}
       </Route>
+
+      <Route path="/dashboard">
+        {() => <ProtectedRoute component={Dashboard} />}
+      </Route>
+
+      <Route path="/pay" component={Payment} />
 
       {/* ✅ PUBLIC WEBSITE ROUTE */}
       <Route path="/w/:id" component={WebsiteView} />

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getValidAuthToken } from "@/lib/queryClient";
-import { Download } from "lucide-react";
+import { Download, Upload, RefreshCw, Trash2, Image as ImageIcon } from "lucide-react";
 
 type TemplateItem = {
   id: string;
@@ -14,6 +14,11 @@ export default function AdminDashboard() {
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [images, setImages] = useState<Record<string, any | null>>({});
+  const [busySection, setBusySection] = useState<string | null>(null);
+  const [pricingItems, setPricingItems] = useState<{ productName: string; price: string }[]>([]);
+  const [pricingEdit, setPricingEdit] = useState<Record<string, string>>({});
+  const [payments, setPayments] = useState<any[]>([]);
 
   const fetchTemplates = async () => {
     try {
@@ -32,6 +37,210 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchTemplates();
   }, []);
+
+  const sections = useMemo(
+    () => [
+      { key: "hero", label: "Hero Section", maxWidth: 2000 },
+      { key: "templates", label: "Template Preview", maxWidth: 1200 },
+      { key: "ai-magic", label: "AI Magic Section", maxWidth: 500 },
+      { key: "celebration", label: "Celebration Graphics", maxWidth: 500 },
+      { key: "mockups", label: "Website Mockups", maxWidth: 2000 },
+    ],
+    []
+  );
+
+  const fetchImages = async () => {
+    try {
+      const results = await Promise.all(
+        sections.map(async (s) => {
+          const res = await fetch(`/api/site-images?section=${encodeURIComponent(s.key)}`);
+          if (!res.ok) return [s.key, null] as const;
+          const data = await res.json();
+          return [s.key, Array.isArray(data) && data.length ? data[0] : null] as const;
+        })
+      );
+      const map: Record<string, any | null> = {};
+      for (const [k, v] of results) map[k] = v;
+      setImages(map);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchImages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchPricing = async () => {
+    try {
+      const token = getValidAuthToken();
+      if (!token) return;
+      const res = await fetch("/api/pricing", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      setPricingItems(Array.isArray(data) ? data : []);
+      const draft: Record<string, string> = {};
+      for (const it of Array.isArray(data) ? data : []) draft[it.productName] = it.price;
+      setPricingEdit(draft);
+    } catch {}
+  };
+
+  const savePricing = async (product: string) => {
+    try {
+      const token = getValidAuthToken();
+      if (!token) return;
+      const price = pricingEdit[product] || "";
+      const res = await fetch("/api/pricing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ product_name: product, price }),
+      });
+      if (!res.ok) {
+        setError("Failed to update pricing.");
+        return;
+      }
+      await fetchPricing();
+    } catch {
+      setError("Failed to update pricing.");
+    }
+  };
+
+  const fetchPayments = async () => {
+    try {
+      const token = getValidAuthToken();
+      if (!token) return;
+      const res = await fetch("/api/purchases?status=pending", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setPayments(Array.isArray(data) ? data : []);
+    } catch {}
+  };
+
+  const actPayment = async (id: string, action: "approve" | "reject") => {
+    try {
+      const token = getValidAuthToken();
+      if (!token) return;
+      const res = await fetch(`/api/purchases/${id}/${action}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        setError("Action failed.");
+        return;
+      }
+      await fetchPayments();
+    } catch {
+      setError("Action failed.");
+    }
+  };
+
+  useEffect(() => {
+    fetchPricing();
+    fetchPayments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function resizeImageIfNeeded(file: File, maxWidth: number) {
+    const img = document.createElement("img");
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(new Error("read failed"));
+      r.readAsDataURL(file);
+    });
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("image load failed"));
+      img.src = dataUrl;
+    });
+    if (img.width <= maxWidth) {
+      return file;
+    }
+    const scale = maxWidth / img.width;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.floor(img.width * scale);
+    canvas.height = Math.floor(img.height * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob: Blob = await new Promise((resolve) =>
+      canvas.toBlob((b) => resolve(b as Blob), "image/jpeg", 0.9)
+    );
+    return new File([blob], file.name.replace(/\.(png|jpg|jpeg|webp)$/i, ".jpg"), {
+      type: "image/jpeg",
+    });
+  }
+
+  async function uploadOrReplace(sectionKey: string, f: File) {
+    const token = getValidAuthToken();
+    if (!token) {
+      setError("You must be logged in as admin.");
+      return;
+    }
+    const meta = sections.find((s) => s.key === sectionKey)!;
+    const optimized = await resizeImageIfNeeded(f, meta.maxWidth);
+    setBusySection(sectionKey);
+    setError(null);
+    try {
+      const existing = images[sectionKey];
+      const form = new FormData();
+      form.append("section_name", sectionKey);
+      form.append("image", optimized);
+      const url = existing ? `/api/site-images/${existing.id}` : "/api/site-images";
+      const method = existing ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (!res.ok) {
+        setError("Upload failed. Please try again.");
+        return;
+      }
+      await fetchImages();
+    } catch {
+      setError("Upload failed. Please try again.");
+    } finally {
+      setBusySection(null);
+    }
+  }
+
+  async function deleteImage(sectionKey: string) {
+    const token = getValidAuthToken();
+    if (!token) {
+      setError("You must be logged in as admin.");
+      return;
+    }
+    const existing = images[sectionKey];
+    if (!existing) return;
+    setBusySection(sectionKey);
+    try {
+      const res = await fetch(`/api/site-images/${existing.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        setError("Delete failed. Please try again.");
+        return;
+      }
+      await fetchImages();
+    } catch {
+      setError("Delete failed. Please try again.");
+    } finally {
+      setBusySection(null);
+    }
+  }
+
+  function onPickFile(sectionKey: string, ev: React.ChangeEvent<HTMLInputElement>) {
+    const f = ev.target.files?.[0];
+    if (f) {
+      uploadOrReplace(sectionKey, f);
+      ev.currentTarget.value = "";
+    }
+  }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -151,6 +360,157 @@ export default function AdminDashboard() {
           {error && (
             <div className="mt-4 text-sm text-red-600">{error}</div>
           )}
+        </div>
+
+        <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
+          <h2 className="text-2xl font-serif font-medium mb-4">Image Manager</h2>
+          <p className="text-muted-foreground mb-6">
+            Upload, replace, or delete images used across the website.
+          </p>
+          {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {sections.map((s) => {
+              const item = images[s.key];
+              const loading = busySection === s.key;
+              return (
+                <div
+                  key={s.key}
+                  className="relative rounded-2xl border border-border bg-white/70 p-4 shadow-lg"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">{s.label}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      max {s.maxWidth}px
+                    </div>
+                  </div>
+                  <div className="mt-3 aspect-[4/3] rounded-xl overflow-hidden border border-border bg-secondary/30">
+                    {item?.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={s.label}
+                        className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="h-full w-full grid place-content-center text-muted-foreground">
+                        <ImageIcon className="h-8 w-8" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 flex gap-3">
+                    <label className="inline-flex items-center justify-center rounded-full border border-border bg-white px-4 py-2 text-xs font-semibold hover:bg-secondary/40 cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => onPickFile(s.key, e)}
+                        className="hidden"
+                      />
+                      <Upload className="mr-2 h-3.5 w-3.5" />
+                      {item ? "Replace" : "Upload"}
+                    </label>
+                    {item && (
+                      <button
+                        type="button"
+                        onClick={() => deleteImage(s.key)}
+                        className="inline-flex items-center rounded-full border border-border bg-white px-4 py-2 text-xs font-semibold hover:bg-secondary/40"
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => fetchImages()}
+                      className="ml-auto inline-flex items-center rounded-full border border-border bg-white px-3 py-2 text-xs font-medium hover:bg-secondary/40"
+                      disabled={loading}
+                    >
+                      <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                      Refresh
+                    </button>
+                  </div>
+                  {loading && (
+                    <div className="absolute inset-0 grid place-content-center rounded-2xl bg-white/60 text-xs font-medium">
+                      Working...
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
+          <h2 className="text-2xl font-serif font-medium mb-4">Pricing Management</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {["website_creation", "template"].map((p) => (
+              <div key={p} className="rounded-2xl border border-border bg-white/70 p-4 shadow">
+                <div className="text-sm font-medium">{p.replace("_", " ")}</div>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-sm text-foreground/70">₹</span>
+                  <input
+                    value={pricingEdit[p] ?? ""}
+                    onChange={(e) =>
+                      setPricingEdit((prev) => ({ ...prev, [p]: e.target.value }))
+                    }
+                    className="h-10 rounded-md border border-border px-3 text-sm"
+                    placeholder="49"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => savePricing(p)}
+                    className="ml-auto rounded-full bg-black px-4 py-2 text-xs font-semibold text-white"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-white/50 bg-white/70 p-6 shadow-xl backdrop-blur-md">
+          <h2 className="text-2xl font-serif font-medium mb-4">Payments</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {payments.map((p) => (
+              <div key={p.id} className="rounded-2xl border border-border bg-white p-4 shadow">
+                <div className="text-sm text-foreground/70">{p.productType}</div>
+                <div className="mt-1 text-lg font-semibold">₹{p.amount}</div>
+                {p.paymentScreenshot ? (
+                  <a
+                    href={p.paymentScreenshot}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 block rounded-xl border border-border"
+                  >
+                    <img
+                      src={p.paymentScreenshot}
+                      alt="screenshot"
+                      className="h-40 w-full rounded-xl object-cover"
+                    />
+                  </a>
+                ) : (
+                  <div className="mt-3 h-40 w-full rounded-xl border border-border grid place-content-center text-xs text-foreground/60">
+                    No screenshot
+                  </div>
+                )}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => actPayment(p.id, "approve")}
+                    className="rounded-full bg-green-600 px-4 py-1.5 text-xs font-semibold text-white"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => actPayment(p.id, "reject")}
+                    className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-semibold text-white"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-4">

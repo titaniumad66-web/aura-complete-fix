@@ -24,15 +24,22 @@ function parseJwt(token: string): AuthPayload | null {
 }
 
 export function getAuthToken() {
+  const ls = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (ls) return ls;
   return sessionStorage.getItem(AUTH_TOKEN_KEY);
 }
 
 export function setAuthToken(token: string) {
-  sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+  try {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } catch {
+    sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+  }
   window.dispatchEvent(new Event(AUTH_EVENT));
 }
 
 export function clearAuthToken() {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
   sessionStorage.removeItem(AUTH_TOKEN_KEY);
   window.dispatchEvent(new Event(AUTH_EVENT));
 }

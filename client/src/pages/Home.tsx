@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 import {
   ArrowRight,
   Sparkles,
@@ -30,124 +30,189 @@ type HeroSectionProps = {
 };
 
 function HeroSection({ onPrimaryHref, onSecondaryHref }: HeroSectionProps) {
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const x1 = useTransform(mx, (v) => v * 0.02);
+  const y1 = useTransform(my, (v) => v * 0.02);
+  const x2 = useTransform(mx, (v) => v * -0.015);
+  const y2 = useTransform(my, (v) => v * -0.015);
+  const x3 = useTransform(mx, (v) => v * 0.01);
+  const y3 = useTransform(my, (v) => v * 0.01);
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#fef6f8] via-[#f9f7ff] to-[#eef7ff]">
-      <div className="absolute inset-0">
-        <motion.img
-          initial={{ scale: 1.1, opacity: 0 }}
-          animate={{ scale: 1, opacity: 0.35 }}
-          transition={{ duration: 1.6, ease: "easeOut" }}
-          src={heroBg}
-          alt="Aura background"
-          className="w-full h-full object-cover"
-        />
-      </div>
+    <section
+      className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-white via-[#f7f3ff] to-[#ffeef7] text-foreground"
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        mx.set(((e.clientX - cx) / rect.width) * 200);
+        my.set(((e.clientY - cy) / rect.height) * 200);
+      }}
+    >
       <motion.div
-        animate={{ y: [0, -18, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-20 -right-16 h-72 w-72 rounded-full bg-pink-300/30 blur-3xl"
+        animate={{ y: [0, -18, 0], opacity: [0.55, 0.75, 0.55] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -top-20 -right-16 h-[28rem] w-[28rem] rounded-full bg-fuchsia-400/25 blur-[120px] hidden md:block"
+        style={{ x: x1, y: y1 }}
       />
       <motion.div
-        animate={{ y: [0, 20, 0] }}
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-indigo-300/30 blur-3xl"
+        animate={{ y: [0, 20, 0], opacity: [0.55, 0.75, 0.55] }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -bottom-24 -left-16 h-[32rem] w-[32rem] rounded-full bg-purple-400/25 blur-[120px] hidden md:block"
+        style={{ x: x2, y: y2 }}
       />
-      <div className="container relative z-10 mx-auto px-4 text-center max-w-4xl">
+      <motion.div
+        animate={{ y: [0, -14, 0], opacity: [0.5, 0.7, 0.5] }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-1/2 top-1/2 h-[18rem] w-[18rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-300/25 blur-[120px] hidden md:block"
+        style={{ x: x3, y: y3 }}
+      />
+      <div className="container relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 pt-28 lg:grid-cols-2 lg:py-24">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: "easeOut" }}
-          className="space-y-8"
+          transition={{ duration: 1.1, ease: "easeOut" }}
+          className="space-y-6"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/60 px-5 py-2 text-sm font-medium text-foreground/80 shadow-sm backdrop-blur-md">
-            <Sparkles className="h-4 w-4 text-primary" />
-            The premium way to gift a birthday surprise
+          <div className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-white/60 px-5 py-2 text-sm font-medium text-foreground/80 shadow-sm backdrop-blur">
+            <Sparkles className="h-4 w-4 text-purple-600" />
+            Powered by Aura AI
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-semibold leading-tight tracking-tight">
-            Create Magical Birthday Surprise Websites
+          <h1 className="font-sans text-4xl md:text-7xl font-semibold leading-tight tracking-tight">
+            Create Beautiful Birthday Websites in Seconds
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-foreground/70 leading-relaxed">
-            Design unforgettable birthday experiences with memories, music, and surprise reveals.
+          <p className="text-base sm:text-lg md:text-xl text-foreground/70">
+            Design unforgettable digital celebrations with the power of AI.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <Link href={onPrimaryHref}>
               <button
                 type="button"
-                className="h-14 w-full sm:w-auto px-10 rounded-full bg-foreground text-background hover:bg-foreground/90 transition-all font-medium text-lg flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl hover:-translate-y-0.5"
+                className="h-14 w-full sm:w-auto rounded-full bg-gradient-to-r from-violet-600 to-pink-500 px-10 text-white shadow-lg transition-all hover:opacity-95"
               >
-                Create Your Surprise <ArrowRight className="h-5 w-5" />
+                Create Website
               </button>
             </Link>
             <Link href={onSecondaryHref}>
               <button
                 type="button"
-                className="h-14 w-full sm:w-auto px-10 rounded-full bg-white/70 border border-white/50 text-foreground hover:bg-white transition-all font-medium text-lg flex items-center justify-center gap-3 shadow-lg"
+                className="h-14 w-full sm:w-auto rounded-full border border-purple-200 bg-white/70 px-10 text-foreground shadow-sm transition-all hover:bg-white"
               >
-                Explore Templates
+                View Templates
               </button>
             </Link>
           </div>
           <Link href="/preview">
             <button
               type="button"
-              className="text-sm font-medium text-foreground/70 hover:text-primary transition-colors"
+              className="text-sm font-medium text-foreground/70 transition-colors hover:text-purple-700"
             >
               <span className="inline-flex items-center gap-2">
                 <PlayCircle className="h-4 w-4" />
-                Watch the demo experience
+                Watch demo
               </span>
             </button>
           </Link>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 18 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: "easeOut" }}
+          className="relative hidden md:block"
+        >
+          <DynamicHeroImage />
         </motion.div>
       </div>
     </section>
   );
 }
 
+function useSiteImage(section: string) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    const run = async () => {
+      try {
+        const res = await fetch(`/api/site-images?section=${encodeURIComponent(section)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (mounted) setUrl(Array.isArray(data) && data.length ? data[0].imageUrl : null);
+      } catch {
+        // ignore
+      }
+    };
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [section]);
+  return url;
+}
+
+function DynamicHeroImage() {
+  const url = useSiteImage("hero");
+  const src = url || heroBg;
+  return (
+    <div className="rounded-[2rem] border border-purple-200/60 bg-white/70 p-2 shadow-xl backdrop-blur">
+      <img src={src} alt="Celebration" className="w-full rounded-[1.6rem] object-cover" />
+    </div>
+  );
+}
+
 type StepItem = { title: string; description: string; icon: ComponentType<{ className?: string }> };
 
-function HowItWorksSection({ steps }: { steps: StepItem[] }) {
+function StoryBlock({
+  eyebrow,
+  title,
+  description,
+  image,
+  reverse,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  image: string;
+  reverse?: boolean;
+}) {
   return (
-    <section className="min-h-screen flex items-center bg-background">
-      <div className="container mx-auto px-4 max-w-6xl py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.8 }}
-          className="text-center max-w-3xl mx-auto"
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-white via-[#faf7ff] to-[#fff5fa]">
+      <div className="container mx-auto px-6 py-24 max-w-7xl">
+        <div
+          className={`grid items-center gap-10 lg:grid-cols-2 ${reverse ? "lg:grid-flow-dense" : ""}`}
         >
-          <p className="text-sm uppercase tracking-[0.2em] text-primary/70 mb-4">
-            How Aura Works
-          </p>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold mb-4">
-            Three steps to a breathtaking surprise
-          </h2>
-          <p className="text-muted-foreground text-base sm:text-lg">
-            Move from idea to shared experience in minutes, with every detail feeling premium and intentional.
-          </p>
-        </motion.div>
-        <div className="mt-16 grid gap-6 md:grid-cols-3">
-          {steps.map((step, index) => (
-            <motion.div
-              key={step.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="rounded-3xl border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-md hover:-translate-y-1 transition-transform"
-            >
-              <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6">
-                <step.icon className="h-6 w-6" />
-              </div>
-              <h3 className="text-2xl font-serif font-medium mb-3">
-                {step.title}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {step.description}
-              </p>
-            </motion.div>
-          ))}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.9 }}
+            className={`${reverse ? "lg:col-start-2" : ""}`}
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-white/70 px-4 py-1 text-xs font-semibold">
+              {eyebrow}
+            </div>
+            <h2 className="mt-6 font-sans text-4xl sm:text-5xl md:text-6xl font-semibold leading-[1.05]">
+              {title}
+            </h2>
+            <p className="mt-4 max-w-xl text-base sm:text-lg md:text-xl text-foreground/70">
+              {description}
+            </p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.8 }}
+            className={`${reverse ? "lg:col-start-1" : ""}`}
+          >
+            <div className="relative rounded-[2rem] border border-purple-200/60 bg-white/70 p-2 backdrop-blur shadow-xl">
+              <img
+                src={image}
+                alt=""
+                className="aspect-[4/3] w-full rounded-[1.6rem] object-cover"
+              />
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>
@@ -156,56 +221,46 @@ function HowItWorksSection({ steps }: { steps: StepItem[] }) {
 
 type FeatureItem = { title: string; description: string; icon: ComponentType<{ className?: string }> };
 
-function FeaturesSection({ features }: { features: FeatureItem[] }) {
+function TemplateScrollerSection({ items }: { items: { title: string; image: string }[] }) {
   return (
-    <section className="min-h-screen flex items-center bg-secondary/30">
-      <div className="container mx-auto px-4 max-w-6xl py-24">
+    <section className="relative min-h-screen flex items-center bg-gradient-to-b from-white via-[#faf7ff] to-[#fff5fa]">
+      <div className="container mx-auto max-w-7xl px-6 py-24">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.8 }}
-          className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6"
+          className="max-w-3xl"
         >
-          <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-primary/70 mb-3">
-              Features
-            </p>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold mb-4">
-              Premium moments, crafted automatically
-            </h2>
-          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl">
-              Every feature is designed to make sharing the birthday surprise feel effortless and unforgettable.
-            </p>
-          </div>
-          <Link href="/create">
-            <button
-              type="button"
-              className="h-12 w-full sm:w-auto px-8 rounded-full bg-foreground text-background font-medium shadow-lg hover:bg-foreground/90 transition-all flex items-center justify-center gap-2"
-            >
-              Start creating <ArrowRight className="h-4 w-4" />
-            </button>
-          </Link>
+          <p className="text-sm uppercase tracking-[0.3em] text-purple-700/70">Template Showcase</p>
+          <h2 className="mt-3 font-sans text-4xl sm:text-5xl md:text-6xl font-semibold leading-[1.05]">
+            Explore cinematic themes
+          </h2>
         </motion.div>
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature, index) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, delay: index * 0.06 }}
-              className="rounded-3xl border border-border/50 bg-white/70 p-7 shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all"
-            >
-              <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-5">
-                <feature.icon className="h-5 w-5" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                {feature.description}
-              </p>
-            </motion.div>
-          ))}
+        <div className="mt-12 overflow-x-auto no-scrollbar">
+          <div className="flex snap-x snap-mandatory gap-6">
+            {items.map((item, i) => (
+              <motion.div
+                key={`${item.title}-${i}`}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ duration: 0.6, delay: i * 0.05 }}
+                className="snap-center"
+              >
+                <div className="group relative w-[76vw] sm:w-[60vw] md:w-[520px] lg:w-[560px]">
+                    <div className="rounded-[2rem] border border-purple-200/60 bg-white/70 p-2 backdrop-blur shadow-xl">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="aspect-[9/14] w-full rounded-[1.6rem] object-cover"
+                    />
+                  </div>
+                  <div className="mt-4 text-lg font-medium text-foreground">{item.title}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -281,83 +336,14 @@ function TemplatesSection({ showcase }: { showcase: ShowcaseItem[] }) {
   );
 }
 
-function SocialTeasersSection({
-  templates,
-  templatesError,
-}: {
-  templates: TemplateItem[];
-  templatesError: boolean;
-}) {
-  return (
-    <section className="min-h-screen flex items-center bg-gradient-to-b from-background via-background to-secondary/30">
-      <div className="container mx-auto px-4 max-w-6xl py-24">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 mb-16">
-          <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-primary/70 mb-3">
-              Social Teasers
-            </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold mb-4">
-              Tease the surprise in style
-            </h2>
-            <p className="text-muted-foreground text-base sm:text-lg max-w-xl">
-              Download Instagram-ready templates and share the excitement.
-            </p>
-          </div>
-          <Link
-            href="/templates"
-            className="text-base sm:text-lg font-medium hover:text-primary transition-colors flex flex-wrap items-center gap-2 border-b-2 border-primary/30 pb-1"
-          >
-            View all templates <ArrowRight className="h-5 w-5" />
-          </Link>
-        </div>
-
-        {templatesError ? (
-          <div className="text-muted-foreground text-lg">
-            Templates are unavailable right now.
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-            {templates.slice(0, 4).map((story, index) => (
-              <motion.div
-                key={story.id}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.6, delay: index * 0.08 }}
-                className="group relative rounded-2xl overflow-hidden aspect-[9/16] shadow-xl hover:shadow-2xl transition-all duration-500"
-              >
-                <img
-                  src={story.imageUrl}
-                  alt={story.title || `Template ${index + 1}`}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity" />
-                <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col items-center justify-end text-center translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                  <a
-                    href={story.imageUrl}
-                    download
-                    className="flex flex-col items-center text-white"
-                  >
-                    <Download className="w-8 h-8 text-white mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100" />
-                    <span className="text-sm font-medium">Download</span>
-                  </a>
-                  <p className="text-white font-medium text-lg">
-                    {story.title || `Template ${index + 1}`}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
+function SocialTeasersSection() {
+  return null;
 }
 
 function AISection() {
   return (
-    <section className="min-h-screen flex items-center bg-background">
-      <div className="container mx-auto px-4 max-w-6xl py-24">
+    <section className="min-h-screen flex items-center bg-gradient-to-b from-white via-[#faf7ff] to-[#fff5fa]">
+      <div className="container mx-auto px-6 max-w-7xl py-24">
         <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] items-center">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -366,20 +352,20 @@ function AISection() {
             transition={{ duration: 0.8 }}
             className="space-y-6"
           >
-            <p className="text-sm uppercase tracking-[0.2em] text-primary/70">
+            <p className="text-sm uppercase tracking-[0.2em] text-purple-700/70">
               Aura AI
             </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold">
+            <h2 className="font-sans text-4xl sm:text-5xl md:text-6xl font-semibold leading-[1.05]">
               Meet Aura AI
             </h2>
-            <p className="text-muted-foreground text-base sm:text-lg">
+            <p className="text-foreground/70 text-base sm:text-lg">
               A smart assistant that helps you design the perfect birthday surprise with
               theme guidance, message polish, and creative ideas.
             </p>
             <Link href="/create">
               <button
                 type="button"
-                className="h-12 w-full sm:w-auto px-8 rounded-full bg-foreground text-background font-medium shadow-lg hover:bg-foreground/90 transition-all flex items-center justify-center gap-2"
+                className="h-12 w-full sm:w-auto rounded-full bg-gradient-to-r from-violet-600 to-pink-500 px-8 text-white font-medium shadow-lg transition-all hover:opacity-95"
               >
                 Try Aura AI <ArrowRight className="h-4 w-4" />
               </button>
@@ -390,30 +376,136 @@ function AISection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.9 }}
-            className="rounded-[2.5rem] border border-white/40 bg-gradient-to-br from-white/70 via-white/50 to-white/80 p-4 sm:p-6 shadow-2xl"
+            className="rounded-[2.5rem] border border-purple-200/60 bg-white/70 p-4 sm:p-6 shadow-xl backdrop-blur"
           >
-            <div className="rounded-3xl bg-white/80 p-5 shadow-lg">
-              <div className="text-sm font-semibold">Aura AI ✨</div>
-              <p className="text-xs text-muted-foreground">Your design assistant</p>
+            <div className="rounded-3xl border border-purple-200/60 bg-white p-5 shadow-lg">
+              <div className="text-sm font-semibold text-foreground">Aura AI ✨</div>
+              <p className="text-xs text-foreground/70">Your design assistant</p>
               <div className="mt-4 space-y-3">
-                <div className="rounded-2xl bg-primary/10 px-4 py-2 text-sm">
+                <div className="rounded-2xl bg-purple-50 px-4 py-2 text-sm text-foreground">
                   Which vibe suits a romantic surprise?
                 </div>
-                <div className="rounded-2xl bg-foreground text-background px-4 py-2 text-sm">
+                <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-pink-500 px-4 py-2 text-sm text-white">
                   Try Romantic or Pastel. Keep the message soft and heartfelt.
                 </div>
-                <div className="rounded-2xl bg-primary/10 px-4 py-2 text-sm">
+                <div className="rounded-2xl bg-purple-50 px-4 py-2 text-sm text-foreground">
                   Can you improve my birthday message?
                 </div>
-                <div className="rounded-2xl bg-foreground text-background px-4 py-2 text-sm">
+                <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-pink-500 px-4 py-2 text-sm text-white">
                   Absolutely. I’ll craft a more emotional version for you.
                 </div>
               </div>
-              <div className="mt-4 flex items-center gap-2 rounded-full border border-border bg-white/70 px-3 py-2 text-xs text-muted-foreground">
+              <div className="mt-4 flex items-center gap-2 rounded-full border border-purple-200/60 bg-white/70 px-3 py-2 text-xs text-foreground/70">
                 Type your question...
               </div>
             </div>
           </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TestimonialsSection() {
+  const quotes = [
+    {
+      text: "Made my girlfriend's birthday unforgettable.",
+      author: "Rohan",
+    },
+    {
+      text: "Amazing surprise website.",
+      author: "Priya",
+    },
+  ];
+
+  return (
+    <section className="min-h-screen flex items-center bg-secondary/30">
+      <div className="container mx-auto px-4 max-w-6xl py-24">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.8 }}
+          className="text-center max-w-3xl mx-auto"
+        >
+          <p className="text-sm uppercase tracking-[0.2em] text-primary/70 mb-3">
+            Loved by users
+          </p>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold mb-4">
+            Real moments, real reactions
+          </h2>
+        </motion.div>
+        <div className="mt-12 grid gap-6 md:grid-cols-2">
+          {quotes.map((q, i) => (
+            <motion.div
+              key={q.text}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, delay: i * 0.06 }}
+              className="rounded-3xl border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-md"
+            >
+              <p className="text-lg md:text-xl text-foreground/90">{`“${q.text}”`}</p>
+              <div className="mt-4 text-sm text-muted-foreground">— {q.author}</div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function YoungCreatorsSection() {
+  const founder = { name: "Anuj Dhavane", role: "Founder" };
+  const cofounders = [
+    { name: "Sahil", role: "Cofounder" },
+    { name: "Amit", role: "Cofounder" },
+    { name: "Kartik", role: "Cofounder" },
+    { name: "Krishna", role: "Cofounder" },
+  ];
+
+  return (
+    <section className="min-h-screen flex items-center bg-gradient-to-b from-white via-[#f7f3ff] to-[#ffeef7]">
+      <div className="container mx-auto px-6 max-w-7xl py-24">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.8 }}
+          className="text-center max-w-3xl mx-auto"
+        >
+          <p className="text-sm uppercase tracking-[0.2em] text-purple-700/70 mb-3">
+            Built by Young Creators
+          </p>
+          <h2 className="font-sans text-4xl sm:text-5xl md:text-6xl font-semibold">
+            Passion, design, and a bit of magic
+          </h2>
+          <p className="mt-3 text-foreground/70 text-base sm:text-lg">
+            A small team crafting joyful digital celebrations.
+          </p>
+        </motion.div>
+
+        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-3xl border border-purple-200/60 bg-white/70 p-6 shadow-xl backdrop-blur">
+            <p className="text-xs uppercase tracking-[0.2em] text-purple-700/70 mb-2">
+              Founder
+            </p>
+            <div className="rounded-2xl bg-white p-6 shadow-md border border-purple-200/60">
+              <h3 className="text-2xl font-semibold">{founder.name}</h3>
+              <p className="text-foreground/70">{founder.role}</p>
+            </div>
+          </div>
+          {cofounders.map((person) => (
+            <div
+              key={person.name}
+              className="rounded-3xl border border-purple-200/60 bg-white/70 p-6 shadow-xl backdrop-blur"
+            >
+              <div className="rounded-2xl bg-white p-6 shadow-md border border-purple-200/60">
+                <h4 className="text-xl font-semibold">{person.name}</h4>
+                <p className="text-foreground/70">{person.role}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -477,7 +569,7 @@ function FounderSection({ founder, cofounders }: { founder: TeamMember; cofounde
 
 function CTASection() {
   return (
-    <section className="min-h-screen flex items-center bg-gradient-to-br from-[#111827] via-[#1f2937] to-[#111827] text-white">
+    <section className="min-h-screen flex items-center bg-[linear-gradient(180deg,_#fff7fb,_#f6f1ff)]">
       <div className="container mx-auto px-4 py-24 text-center max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -486,25 +578,25 @@ function CTASection() {
           transition={{ duration: 0.8 }}
           className="space-y-8"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-serif font-semibold">
-            Ready to create the perfect birthday surprise?
+          <h2 className="font-sans text-[36px] sm:text-[44px] md:text-[56px] font-semibold">
+            Create a magical surprise today.
           </h2>
-          <p className="text-white/70 text-base sm:text-lg md:text-xl">
-            Start crafting a personalized experience that feels like a premium gift.
+          <p className="text-foreground/70 text-base sm:text-lg md:text-xl">
+            Start crafting a personalized experience that feels joyful and premium.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/create">
               <button
                 type="button"
-                className="h-14 w-full sm:w-auto px-10 rounded-full bg-white text-gray-900 font-medium text-lg shadow-xl hover:shadow-2xl transition-all"
+                className="h-14 w-full sm:w-auto px-10 rounded-full bg-gradient-to-r from-violet-600 to-pink-500 text-white font-medium text-lg shadow-xl hover:opacity-95 transition-all"
               >
-                Create Your Surprise
+                Create Website
               </button>
             </Link>
             <Link href="/templates">
               <button
                 type="button"
-                className="h-14 w-full sm:w-auto px-10 rounded-full border border-white/30 text-white font-medium text-lg hover:bg-white/10 transition-all"
+                className="h-14 w-full sm:w-auto px-10 rounded-full border border-purple-200 bg-white text-foreground font-medium text-lg hover:bg-white/90 transition-all"
               >
                 Explore Templates
               </button>
@@ -513,6 +605,63 @@ function CTASection() {
         </motion.div>
       </div>
     </section>
+  );
+}
+
+function BuilderFlowSection() {
+  const steps = [
+    { title: "Enter Details", desc: "Tell us who it’s for and add memories." },
+    { title: "AI Designs", desc: "Aura crafts a beautiful website instantly." },
+    { title: "Share the Link", desc: "Send it and create a magical moment." },
+  ];
+  return (
+    <section className="min-h-screen flex items-center bg-[linear-gradient(180deg,_#fff7fb,_#f6f1ff)]">
+      <div className="container mx-auto max-w-7xl px-6 py-24">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-3xl"
+        >
+          <p className="text-sm uppercase tracking-[0.3em] text-purple-700/70">Website Builder Flow</p>
+          <h2 className="mt-3 font-sans text-[36px] md:text-[48px] font-semibold leading-[1.05]">
+            From idea to surprise in minutes
+          </h2>
+        </motion.div>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {steps.map((s, i) => (
+            <motion.div
+              key={s.title}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, delay: i * 0.06 }}
+              className="rounded-2xl bg-white shadow-xl border border-purple-100 p-6 transition-transform duration-300 hover:scale-[1.02]"
+            >
+              <div className="text-xs uppercase tracking-[0.2em] text-purple-700/70">Step {i + 1}</div>
+              <div className="mt-2 text-xl font-semibold">{s.title}</div>
+              <div className="mt-2 text-foreground/70">{s.desc}</div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FooterSection() {
+  return (
+    <footer className="border-t border-purple-100 bg-white">
+      <div className="mx-auto max-w-7xl px-6 py-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm text-foreground/80">Aura — Celebrate with style ✨</div>
+        <div className="flex gap-4 text-sm text-foreground/60">
+          <a href="/templates" className="hover:text-foreground">Templates</a>
+          <a href="/create" className="hover:text-foreground">Create</a>
+          <a href="/ai-websites" className="hover:text-foreground">AI Websites</a>
+        </div>
+      </div>
+    </footer>
   );
 }
 
@@ -539,62 +688,42 @@ export default function Home() {
 
   const steps: StepItem[] = [
     {
-      title: "Create Your Surprise",
-      description: "Add memories, message, and music.",
-      icon: Wand2,
+      title: "Enter details",
+      description: "Tell us who it’s for and add memories.",
+      icon: Heart,
     },
     {
-      title: "Generate the Magic",
-      description: "Aura builds a beautiful surprise website.",
+      title: "AI designs the website",
+      description: "Aura builds a beautiful website instantly.",
       icon: Sparkles,
     },
     {
-      title: "Share the Moment",
-      description: "Send the link or Instagram teaser.",
+      title: "Share the surprise link",
+      description: "Send the link and make their day.",
       icon: Share2,
     },
   ];
 
   const features: FeatureItem[] = [
     {
-      title: "Surprise Reveal Experience",
-      description: "A dramatic gate that opens into the birthday moment.",
-      icon: Gift,
-    },
-    {
-      title: "Memory Photo Gallery",
-      description: "Layer photos into a beautifully curated timeline.",
-      icon: Heart,
-    },
-    {
-      title: "Music Background",
-      description: "Set the mood with emotional soundtrack playback.",
-      icon: Music,
-    },
-    {
-      title: "Instagram Teaser Generator",
-      description: "Export ready-to-post story images in one click.",
-      icon: Download,
-    },
-    {
-      title: "QR Code Sharing",
-      description: "Let anyone scan and open instantly.",
-      icon: QrCode,
-    },
-    {
-      title: "Replay Surprise Animation",
-      description: "Reopen the moment whenever they want.",
-      icon: RefreshCcw,
-    },
-    {
-      title: "Dynamic AI Websites",
-      description: "Adaptive layouts driven by vibe and relationship.",
+      title: "AI Website Generator",
+      description: "Generate a premium website with one click.",
       icon: Sparkles,
     },
     {
-      title: "Aura AI Assistant",
-      description: "Get guidance on themes, messages, and design choices.",
-      icon: Wand2,
+      title: "Premium Templates",
+      description: "Choose from elegant, modern designs.",
+      icon: Gift,
+    },
+    {
+      title: "Personal Messages",
+      description: "Craft heartfelt notes with AI assistance.",
+      icon: Music,
+    },
+    {
+      title: "Shareable Website Links",
+      description: "Share instantly via link or QR.",
+      icon: QrCode,
     },
   ];
 
@@ -616,13 +745,19 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden">
       <HeroSection onPrimaryHref="/create" onSecondaryHref="/templates" />
-      <HowItWorksSection steps={steps} />
-      <FeaturesSection features={features} />
-      <TemplatesSection showcase={showcase} />
-      <SocialTeasersSection templates={templates} templatesError={templatesError} />
       <AISection />
-      <FounderSection founder={founder} cofounders={cofounders} />
+      <TemplateScrollerSection
+        items={[
+          ...showcase,
+          ...templates.slice(0, 6).map((t) => ({
+            title: t.title || "Template",
+            image: t.imageUrl,
+          })),
+        ]}
+      />
+      <BuilderFlowSection />
       <CTASection />
+      <FooterSection />
     </div>
   );
 }

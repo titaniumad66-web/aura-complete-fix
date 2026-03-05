@@ -146,6 +146,26 @@ export default function CreateWebsite() {
   const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
+    const run = async () => {
+      const token = getValidAuthToken();
+      if (!token) return;
+      try {
+        const res = await fetch("/api/monetization/check", {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.allowed === false) {
+          setLocation("/pay");
+        }
+      } catch {
+      }
+    };
+    run();
+  }, [setLocation]);
+
+  useEffect(() => {
     const context = {
       name,
       relationship,

@@ -4,6 +4,7 @@ import {
   text,
   varchar,
   timestamp,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -21,6 +22,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 
   role: text("role").notNull().default("user"), // "user" or "admin"
+  freeWebsiteUsed: boolean("free_website_used").notNull().default(false),
 
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -83,3 +85,63 @@ export const insertTemplateSchema = createInsertSchema(templates).pick({
 
 export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
 export type Template = typeof templates.$inferSelect;
+
+// ================= SITE IMAGES TABLE =================
+export const siteImages = pgTable("site_images", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
+  sectionName: text("section_name").notNull(),
+  imageName: text("image_name").notNull(),
+  imageUrl: text("image_url").notNull(),
+
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSiteImageSchema = createInsertSchema(siteImages).pick({
+  sectionName: true,
+  imageName: true,
+  imageUrl: true,
+});
+
+export type InsertSiteImage = z.infer<typeof insertSiteImageSchema>;
+export type SiteImage = typeof siteImages.$inferSelect;
+
+// ================= PRICING TABLE =================
+export const pricing = pgTable("pricing", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productName: text("product_name").notNull(),
+  price: text("price").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPricingSchema = createInsertSchema(pricing).pick({
+  productName: true,
+  price: true,
+});
+
+export type InsertPricing = z.infer<typeof insertPricingSchema>;
+export type Pricing = typeof pricing.$inferSelect;
+
+// ================= PURCHASES TABLE =================
+export const purchases = pgTable("purchases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  productType: text("product_type").notNull(),
+  amount: text("amount").notNull(),
+  paymentStatus: text("payment_status").notNull().default("pending"),
+  paymentScreenshot: text("payment_screenshot"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPurchaseSchema = createInsertSchema(purchases).pick({
+  userId: true,
+  productType: true,
+  amount: true,
+  paymentStatus: true,
+  paymentScreenshot: true,
+});
+
+export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;
+export type Purchase = typeof purchases.$inferSelect;
