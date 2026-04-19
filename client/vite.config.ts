@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { metaImagesPlugin } from "./vite-plugin-meta-images";
 
@@ -8,7 +7,6 @@ export default defineConfig({
   plugins: [
     react(),
     runtimeErrorOverlay(),
-    tailwindcss(),
     metaImagesPlugin(),
   ],
 
@@ -21,6 +19,6 @@ export default defineConfig({
   },
 
   build: {
-    outDir: "dist",   // VERY IMPORTANT
+    outDir: "dist",   // Output to client/dist
   },
 });
