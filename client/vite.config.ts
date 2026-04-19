@@ -1,13 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import { metaImagesPlugin } from "./vite-plugin-meta-images";
 
 export default defineConfig({
-  plugins: [
-    react(),
-    metaImagesPlugin(),
-  ],
+  plugins: [react()],
 
   resolve: {
     alias: {
