@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
+import { resolveBackendMediaUrl } from "@/lib/api";
 import { getPublishedTheme, type PublishedThemeId } from "./publishedSiteThemes";
 
 function letterThemeSafe(themeId: string | undefined): PublishedThemeId {
@@ -101,7 +102,11 @@ export default function LetterLayout({
             className="mx-auto mt-12 w-full max-w-xl"
           >
             <div className="overflow-hidden rounded-2xl shadow-[0_24px_48px_-16px_rgba(255,107,157,0.25)] ring-1 ring-[#FFD6E7]/70">
-              <img src={image} alt="" className="aspect-[4/3] w-full object-cover sm:aspect-[16/10]" />
+              <img
+                src={resolveBackendMediaUrl(image) ?? image}
+                alt=""
+                className="aspect-[4/3] w-full object-cover sm:aspect-[16/10]"
+              />
             </div>
           </motion.figure>
         ) : null}

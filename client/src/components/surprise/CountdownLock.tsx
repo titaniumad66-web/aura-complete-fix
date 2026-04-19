@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Sparkles } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 import { getValidAuthToken } from "@/lib/queryClient";
 
 type CountdownLockProps = {
@@ -64,7 +65,7 @@ export default function CountdownLock({
     setOpening(true);
     setOpenError(null);
     try {
-      const res = await fetch(`/api/websites/${websiteId}/unlock-now`, {
+      const res = await fetch(apiUrl(`/api/websites/${websiteId}/unlock-now`), {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       });

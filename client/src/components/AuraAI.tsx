@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, Send } from "lucide-react";
 
@@ -79,7 +80,7 @@ export default function AuraAI() {
     setIsSending(true);
 
     try {
-      const res = await fetch("/api/ai", {
+      const res = await fetch(apiUrl("/api/ai"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { resolveBackendMediaUrl } from "@/lib/api";
 import {
   memoryChapterHeading,
   type PublishedMemoryItem,
@@ -43,7 +44,10 @@ export default function MemoryTimeline({
       <ul className="space-y-10 sm:space-y-12">
         {visible.map((memory, index) => {
           const heading = memoryChapterHeading(memory);
-          const img = memory.image && memory.image.length > 0 ? memory.image : null;
+          const img =
+            memory.image && memory.image.length > 0
+              ? (resolveBackendMediaUrl(memory.image) ?? memory.image)
+              : null;
           const sub = memory.date;
           const bodyText =
             memory.body?.trim() ||

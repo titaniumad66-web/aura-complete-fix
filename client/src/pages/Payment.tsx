@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { apiUrl } from "@/lib/api";
 import { getValidAuthToken } from "@/lib/queryClient";
 import { QRCodeCanvas } from "qrcode.react";
 
@@ -20,7 +21,7 @@ export default function Payment() {
   useEffect(() => {
     const run = async () => {
       try {
-        const res = await fetch("/api/monetization/info");
+        const res = await fetch(apiUrl("/api/monetization/info"));
         if (!res.ok) return;
         const data = (await res.json()) as Info;
         setInfo(data);
@@ -52,7 +53,7 @@ export default function Payment() {
       form.append("product_type", "website_creation");
       form.append("amount", info?.amount ?? "49");
       form.append("screenshot", file);
-      const res = await fetch("/api/purchases", {
+      const res = await fetch(apiUrl("/api/purchases"), {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: form,

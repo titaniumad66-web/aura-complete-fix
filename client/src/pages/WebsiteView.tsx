@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
+import { apiUrl } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import CountdownLock from "@/components/surprise/CountdownLock";
 import MusicPlayer from "@/components/surprise/MusicPlayer";
@@ -324,7 +325,7 @@ export default function WebsiteView() {
     setScheduleGateClear(false);
     setOpeningStage(0);
     setMusicAutoplayNonce(0);
-    fetch(`/api/websites/${id}`)
+    fetch(apiUrl(`/api/websites/${id}`))
       .then((res) => res.json())
       .then((res) => {
         if (!res?.content || typeof res.content !== "string") {

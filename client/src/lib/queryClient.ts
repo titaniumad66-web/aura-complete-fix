@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { apiUrl } from "./api";
 
 const AUTH_TOKEN_KEY = "auth_token";
 const AUTH_EVENT = "auth-changed";
@@ -73,13 +74,18 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+function resolveFetchUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  return apiUrl(url.startsWith("/") ? url : `/${url}`);
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
   const token = getValidAuthToken();
-  const res = await fetch(url, {
+  const res = await fetch(resolveFetchUrl(url), {
     method,
     headers: {
       ...(data ? { "Content-Type": "application/json" } : {}),
@@ -100,7 +106,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const token = getValidAuthToken();
-    const res = await fetch(queryKey.join("/") as string, {
+    const res = await fetch(resolveFetchUrl(queryKey.join("/") as string), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: "include",
     });

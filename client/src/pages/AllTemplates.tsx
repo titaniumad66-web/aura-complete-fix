@@ -1,3 +1,4 @@
+import { apiUrl, resolveBackendMediaUrl } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 
@@ -14,7 +15,7 @@ export default function AllTemplates() {
   useEffect(() => {
     const loadTemplates = async () => {
       try {
-        const res = await fetch("/api/templates");
+        const res = await fetch(apiUrl("/api/templates"));
         if (!res.ok) {
           setError("Templates are unavailable right now.");
           return;
@@ -47,20 +48,22 @@ export default function AllTemplates() {
             <div className="text-muted-foreground text-lg">{error}</div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-            {templates.map((template, index) => (
+            {templates.map((template, index) => {
+              const imageSrc = resolveBackendMediaUrl(template.imageUrl) ?? template.imageUrl;
+              return (
               <div
                 key={template.id}
                 className="group relative rounded-2xl overflow-hidden aspect-[9/16] shadow-sm hover:shadow-xl transition-all duration-500"
               >
                 <img
-                  src={template.imageUrl}
+                  src={imageSrc}
                   alt={template.title || `Template ${index + 1}`}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                 <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col items-center justify-end text-center translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                   <a
-                    href={template.imageUrl}
+                    href={imageSrc}
                     download
                     className="flex flex-col items-center text-white"
                   >
@@ -75,7 +78,8 @@ export default function AllTemplates() {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
           )}
         </div>

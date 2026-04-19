@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Plus, Loader2 } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 import { getValidAuthToken } from "@/lib/queryClient";
 import DashboardCard, { type DashboardCardItem } from "@/components/dashboard/DashboardCard";
 import {
@@ -47,7 +48,7 @@ export default function Dashboard() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/websites", {
+      const res = await fetch(apiUrl("/api/websites"), {
         headers: { Authorization: `Bearer ${token}` },
         credentials: "include",
       });
@@ -89,12 +90,12 @@ export default function Dashboard() {
     setBusyId(id);
     setBusyAction("duplicate");
     try {
-      const res = await fetch(`/api/websites/${id}`);
+      const res = await fetch(apiUrl(`/api/websites/${id}`));
       if (!res.ok) throw new Error("fetch");
       const row = (await res.json()) as ApiWebsite;
       const base = row.title.replace(/\s*\(copy(?:\s*\d+)?\)\s*$/i, "").trim() || "Surprise";
       const dupTitle = `${base} (copy)`;
-      const create = await fetch("/api/websites", {
+      const create = await fetch(apiUrl("/api/websites"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -125,7 +126,7 @@ export default function Dashboard() {
     setBusyId(id);
     setBusyAction("delete");
     try {
-      const res = await fetch(`/api/websites/${id}`, {
+      const res = await fetch(apiUrl(`/api/websites/${id}`), {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

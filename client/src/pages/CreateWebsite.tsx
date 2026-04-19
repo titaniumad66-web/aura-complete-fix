@@ -6,6 +6,7 @@ import {
   Music, Heart, Gift, Crown, Smile, Cloud, Download, Lock, MapPin, Play, Calendar, Star
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { apiUrl } from "@/lib/api";
 import { getValidAuthToken, getAuthPayload } from "@/lib/queryClient";
 import {
   memoryTemplates,
@@ -255,7 +256,7 @@ export default function CreateWebsite() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/websites/${editId}`);
+        const res = await fetch(apiUrl(`/api/websites/${editId}`));
         if (!res.ok) throw new Error("notfound");
         const row = (await res.json()) as {
           id: string;
@@ -603,7 +604,7 @@ export default function CreateWebsite() {
           : theme === "romantic" || theme === "pastel" || theme === "emotional"
           ? "romantic"
           : "premium";
-      const res = await fetch("/api/ai/generate-birthday", {
+      const res = await fetch(apiUrl("/api/ai/generate-birthday"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -780,7 +781,7 @@ export default function CreateWebsite() {
       );
 
       const res = editingSiteId
-        ? await fetch(`/api/websites/${editingSiteId}`, {
+        ? await fetch(apiUrl(`/api/websites/${editingSiteId}`), {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
@@ -792,7 +793,7 @@ export default function CreateWebsite() {
               content: payloadJson,
             }),
           })
-        : await fetch("/api/websites", {
+        : await fetch(apiUrl("/api/websites"), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -859,7 +860,7 @@ export default function CreateWebsite() {
 
     try {
       const res = editingSiteId
-        ? await fetch(`/api/websites/${editingSiteId}`, {
+        ? await fetch(apiUrl(`/api/websites/${editingSiteId}`), {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
@@ -871,7 +872,7 @@ export default function CreateWebsite() {
               content: payloadJson,
             }),
           })
-        : await fetch("/api/websites", {
+        : await fetch(apiUrl("/api/websites"), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1709,7 +1710,7 @@ export default function CreateWebsite() {
                           setMusicTrack(t.id);
                           const el = previewAudioRef.current;
                           if (!el) return;
-                          el.src = `/music/${t.file}.mp3`;
+                          el.src = apiUrl(`/music/${t.file}.mp3`);
                           el.play().catch(() => {});
                         }}
                         aria-label={`Preview ${t.name}`}

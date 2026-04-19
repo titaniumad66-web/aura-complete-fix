@@ -34,6 +34,8 @@ export const memoryTemplates: Record<RelationshipKey, string[]> = {
   ],
 };
 
+import { apiUrl } from "./api";
+
 export type MusicTrackId = "soft_piano" | "romantic_melody" | "birthday_tune" | "none";
 
 export const musicTrackOptions: {
@@ -83,9 +85,9 @@ export function resolveMusicSrcFromContent(data: {
   const track = (data.musicTrack || data.music) as string | undefined;
   if (!track || track === "none") return null;
   const opt = musicTrackOptions.find((o) => o.id === track);
-  if (opt?.file) return `/music/${opt.file}.mp3`;
+  if (opt?.file) return apiUrl(`/music/${opt.file}.mp3`);
   if (track === "piano" || track === "lofi" || track === "acoustic" || track === "upbeat") {
-    return `/music/${track}.mp3`;
+    return apiUrl(`/music/${track}.mp3`);
   }
   return null;
 }

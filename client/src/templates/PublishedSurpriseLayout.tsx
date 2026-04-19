@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ReactNode, Ref } from "react";
 import MemoryTimeline from "@/components/surprise/MemoryTimeline";
+import { resolveBackendMediaUrl } from "@/lib/api";
 import {
   getPublishedTheme,
   memoryChapterHeading,
@@ -145,7 +146,7 @@ export default function PublishedSurpriseLayout({
                   >
                     <div className="overflow-hidden rounded-2xl shadow-[0_20px_50px_-12px_rgba(255,107,157,0.18)] ring-1 ring-[#FFD6E7]/60 transition-[transform,box-shadow] duration-300 motion-safe:hover:scale-[1.01] motion-safe:hover:shadow-[0_24px_56px_-14px_rgba(255,107,157,0.22)]">
                       <img
-                        src={featured.image}
+                        src={resolveBackendMediaUrl(featured.image) ?? featured.image}
                         alt={featuredLabel}
                         className="aspect-[4/3] w-full object-cover sm:aspect-[3/2]"
                         decoding="async"
@@ -196,7 +197,7 @@ export default function PublishedSurpriseLayout({
                   >
                     <div className="overflow-hidden rounded-2xl shadow-[0_20px_50px_-12px_rgba(255,107,157,0.18)] ring-1 ring-[#FFD6E7]/60 transition-[transform,box-shadow] duration-300 motion-safe:hover:scale-[1.01] motion-safe:hover:shadow-[0_24px_56px_-14px_rgba(255,107,157,0.22)]">
                       <img
-                        src={featured.image}
+                        src={resolveBackendMediaUrl(featured.image) ?? featured.image}
                         alt={featuredLabel}
                         className="aspect-[4/3] w-full object-cover sm:aspect-[3/2]"
                         decoding="async"
@@ -281,7 +282,7 @@ export default function PublishedSurpriseLayout({
                   {memory.image ? (
                     <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-[#FFF7FA]">
                       <img
-                        src={memory.image}
+                        src={resolveBackendMediaUrl(memory.image) ?? memory.image}
                         alt={memory.caption || "Memory"}
                         className="h-full w-full object-cover"
                         loading="lazy"

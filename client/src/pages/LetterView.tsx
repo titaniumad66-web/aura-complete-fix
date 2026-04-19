@@ -1,6 +1,7 @@
 import { useParams } from "wouter";
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import { apiUrl } from "@/lib/api";
 import CountdownLock from "@/components/surprise/CountdownLock";
 import MusicPlayer from "@/components/surprise/MusicPlayer";
 import { musicLabelFromContent, resolveMusicSrcFromContent } from "@/lib/surpriseConfig";
@@ -79,7 +80,7 @@ export default function LetterView() {
       setLoadError(true);
       return;
     }
-    fetch(`/api/websites/${id}`)
+    fetch(apiUrl(`/api/websites/${id}`))
       .then((res) => res.json())
       .then((res) => {
         if (!res?.content || typeof res.content !== "string") {

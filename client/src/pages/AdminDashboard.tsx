@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { apiUrl, resolveBackendMediaUrl } from "@/lib/api";
 import { getValidAuthToken } from "@/lib/queryClient";
 import { Download, Upload, RefreshCw, Trash2, Image as ImageIcon } from "lucide-react";
 
@@ -45,7 +46,7 @@ export default function AdminDashboard() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch("/api/templates");
+      const res = await fetch(apiUrl("/api/templates"));
       if (!res.ok) {
         setError("Failed to load templates.");
         return;
@@ -76,7 +77,9 @@ export default function AdminDashboard() {
     try {
       const results = await Promise.all(
         sections.map(async (s) => {
-          const res = await fetch(`/api/site-images?section=${encodeURIComponent(s.key)}`);
+          const res = await fetch(
+            apiUrl(`/api/site-images?section=${encodeURIComponent(s.key)}`),
+          );
           if (!res.ok) return [s.key, null] as const;
           const data = await res.json();
           return [s.key, Array.isArray(data) && data.length ? data[0] : null] as const;
@@ -99,7 +102,9 @@ export default function AdminDashboard() {
     try {
       const token = getValidAuthToken();
       if (!token) return;
-      const res = await fetch("/api/pricing", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiUrl("/api/pricing"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) return;
       const data = await res.json();
       setPricingItems(Array.isArray(data) ? data : []);
@@ -114,7 +119,7 @@ export default function AdminDashboard() {
       const token = getValidAuthToken();
       if (!token) return;
       const price = pricingEdit[product] || "";
-      const res = await fetch("/api/pricing", {
+      const res = await fetch(apiUrl("/api/pricing"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ product_name: product, price }),
@@ -134,7 +139,7 @@ export default function AdminDashboard() {
       const token = getValidAuthToken();
       if (!token) return;
       const qs = status ? `?status=${encodeURIComponent(status)}` : "";
-      const res = await fetch(`/api/purchases${qs}`, {
+      const res = await fetch(apiUrl(`/api/purchases${qs}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return;
@@ -147,7 +152,7 @@ export default function AdminDashboard() {
     try {
       const token = getValidAuthToken();
       if (!token) return;
-      const res = await fetch(`/api/purchases/${id}/${action}`, {
+      const res = await fetch(apiUrl(`/api/purchases/${id}/${action}`), {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -171,7 +176,9 @@ export default function AdminDashboard() {
     try {
       const token = getValidAuthToken();
       if (!token) return;
-      const res = await fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiUrl("/api/admin/stats"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) return;
       const data = await res.json();
       setStats(data);
@@ -187,7 +194,9 @@ export default function AdminDashboard() {
     try {
       const token = getValidAuthToken();
       if (!token) return;
-      const res = await fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiUrl("/api/admin/users"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) return;
       const data = await res.json();
       setUsers(Array.isArray(data) ? data : []);
@@ -243,9 +252,9 @@ export default function AdminDashboard() {
       const form = new FormData();
       form.append("section_name", sectionKey);
       form.append("image", optimized);
-      const url = existing ? `/api/site-images/${existing.id}` : "/api/site-images";
+      const path = existing ? `/api/site-images/${existing.id}` : "/api/site-images";
       const method = existing ? "PUT" : "POST";
-      const res = await fetch(url, {
+      const res = await fetch(apiUrl(path), {
         method,
         headers: { Authorization: `Bearer ${token}` },
         body: form,
@@ -275,7 +284,7 @@ export default function AdminDashboard() {
     if (!existing) return;
     setBusySection(sectionKey);
     try {
-      const res = await fetch(`/api/site-images/${existing.id}`, {
+      const res = await fetch(apiUrl(`/api/site-images/${existing.id}`), {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -317,7 +326,7 @@ export default function AdminDashboard() {
     formData.append("image", file);
 
     try {
-      const res = await fetch("/api/templates", {
+      const res = await fetch(apiUrl("/api/templates"), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -348,7 +357,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const res = await fetch(`/api/templates/${templateId}`, {
+      const res = await fetch(apiUrl(`/api/templates/${templateId}`), {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -381,7 +390,7 @@ export default function AdminDashboard() {
     formData.append("title", mergedTitle);
     formData.append("image", file);
     try {
-      const res = await fetch("/api/templates", {
+      const res = await fetch(apiUrl("/api/templates"), {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -509,7 +518,7 @@ export default function AdminDashboard() {
                   <div className="mt-3 aspect-[4/3] rounded-xl overflow-hidden border border-border bg-secondary/30">
                     {item?.imageUrl ? (
                       <img
-                        src={item.imageUrl}
+                        src={resolveBackendMediaUrl(item.imageUrl) ?? item.imageUrl}
                         alt={s.label}
                         className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.03]"
                       />
@@ -634,6 +643,8 @@ export default function AdminDashboard() {
             {payments.map((p) => {
               const date = p.createdAt ? new Date(p.createdAt) : null;
               const when = date ? date.toLocaleString() : "—";
+              const shot =
+                resolveBackendMediaUrl(p.paymentScreenshot) ?? p.paymentScreenshot;
               return (
                 <div key={p.id} className="rounded-2xl border border-border bg-white p-4 shadow">
                   <div className="text-xs uppercase tracking-[0.2em] text-purple-700/70">
@@ -647,13 +658,13 @@ export default function AdminDashboard() {
                   </div>
                   {p.paymentScreenshot ? (
                     <a
-                      href={p.paymentScreenshot}
+                      href={shot}
                       target="_blank"
                       rel="noreferrer"
                       className="mt-3 block rounded-xl border border-border"
                     >
                       <img
-                        src={p.paymentScreenshot}
+                        src={shot}
                         alt="screenshot"
                         className="h-40 w-full rounded-xl object-cover"
                       />
@@ -743,20 +754,23 @@ export default function AdminDashboard() {
           )}
           <h3 className="text-xl font-serif font-medium">Existing Templates</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-          {templates.map((template) => (
+          {templates.map((template) => {
+            const tplImg =
+              resolveBackendMediaUrl(template.imageUrl) ?? template.imageUrl;
+            return (
             <div
               key={template.id}
               className="group relative rounded-2xl overflow-hidden aspect-[9/16] shadow-sm hover:shadow-xl transition-all duration-500"
             >
               <img
-                src={template.imageUrl}
+                src={tplImg}
                 alt={template.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#FFF7FA]/95 via-transparent to-transparent opacity-70 transition-opacity group-hover:opacity-90" />
               <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col items-center justify-end text-center translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                 <a
-                  href={template.imageUrl}
+                  href={tplImg}
                   download
                   className="flex flex-col items-center text-white"
                 >
@@ -778,7 +792,8 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </div>
-          ))}
+          );
+          })}
           </div>
         </div>
         )}

@@ -1,3 +1,5 @@
+import { resolveBackendMediaUrl } from "./api";
+
 export type CreationKind = "website" | "letter";
 
 export function inferCreationKind(contentJson: string | null | undefined): CreationKind {
@@ -29,12 +31,12 @@ export function previewImageFromContent(contentJson: string | null | undefined):
       image?: string;
       memories?: Array<{ image?: string; isFeatured?: boolean }>;
     };
-    if (j?.type === "letter" && j.image) return j.image;
+    if (j?.type === "letter" && j.image) return resolveBackendMediaUrl(j.image);
     const mems = j.memories;
     if (!Array.isArray(mems)) return undefined;
     const featured = mems.find((m) => m?.isFeatured && m.image);
     const first = mems.find((m) => m?.image);
-    return (featured?.image || first?.image) ?? undefined;
+    return resolveBackendMediaUrl((featured?.image || first?.image) ?? undefined);
   } catch {
     return undefined;
   }
