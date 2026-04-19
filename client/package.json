@@ -69,7 +69,7 @@
     "zod": "^3.25.76",
     "zod-validation-error": "^3.4.0",
 
-    // 🔥 IMPORTANT FIXES BELOW
+    
     "vite": "^7.1.9",
     "@vitejs/plugin-react": "^5.0.4",
     "postcss": "^8.5.10",
