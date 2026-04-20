@@ -1865,11 +1865,11 @@ export default function CreateWebsite() {
       )}
     </div>
 
-    <div className="flex gap-4 justify-center">
+    <div className="flex flex-wrap gap-4 justify-center">
       <button
         type="button"
         onClick={handleOpenPreview}
-        className="rounded-xl bg-primary px-8 py-3 font-medium text-primary-foreground transition-all hover:bg-[#e85a8a]"
+        className="rounded-xl bg-primary px-8 py-3 font-medium text-primary-foreground transition-all hover:bg-[#e85a8a] opacity-100 cursor-pointer"
       >
         Fullscreen Preview
       </button>
@@ -1877,7 +1877,7 @@ export default function CreateWebsite() {
       <button
         type="button"
         onClick={handlePublishWebsite}
-        className="bg-primary text-white px-8 py-3 rounded-xl font-medium hover:bg-primary/90 transition-all"
+        className="bg-primary text-white px-8 py-3 rounded-xl font-medium hover:bg-primary/90 transition-all opacity-100 cursor-pointer"
       >
         {experienceType === "letter" ? "Publish letter" : "Publish Website"}
       </button>
@@ -1885,7 +1885,7 @@ export default function CreateWebsite() {
       <button
         type="button"
         onClick={() => setStep(experienceType === "letter" ? "letterCompose" : "recipient")}
-        className="bg-gray-200 text-black px-8 py-3 rounded-xl font-medium hover:bg-gray-300 transition-all"
+        className="bg-gray-200 text-black px-8 py-3 rounded-xl font-medium hover:bg-gray-300 transition-all opacity-100 cursor-pointer"
       >
         Edit Details
       </button>
@@ -1894,7 +1894,7 @@ export default function CreateWebsite() {
         <button
           type="button"
           onClick={handleDownloadHtml}
-          className="bg-white border px-8 py-3 rounded-xl font-medium hover:bg-gray-100 transition-all"
+          className="bg-white border px-8 py-3 rounded-xl font-medium hover:bg-gray-100 transition-all opacity-100 cursor-pointer"
         >
           Download HTML/CSS
         </button>

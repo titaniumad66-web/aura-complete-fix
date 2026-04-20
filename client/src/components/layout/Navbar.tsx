@@ -53,7 +53,7 @@ function NavbarComponent() {
 
   return (
     <nav
-      className={`fixed inset-x-0 top-0 z-[100] transition-all ${
+      className={`fixed inset-x-0 top-0 z-[100] transition-all pt-[env(safe-area-inset-top)] ${
         scrolled
           ? "border-b border-[#FFD6E7]/90 bg-[#FFF7FA]/90 shadow-[0_8px_32px_-12px_rgba(255,107,157,0.1)] backdrop-blur-xl"
           : "bg-transparent"
