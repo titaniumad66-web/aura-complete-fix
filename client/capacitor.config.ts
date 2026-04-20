@@ -5,8 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Aura',
   webDir: 'dist',
   server: {
-    url: 'https://aura-complete-fix.vercel.app',
-    cleartext: true
+    androidScheme: 'https'
   }
 };
 

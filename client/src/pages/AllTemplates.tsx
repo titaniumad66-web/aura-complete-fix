@@ -67,7 +67,7 @@ export default function AllTemplates() {
                     download
                     className="flex flex-col items-center text-white"
                   >
-                    <Download className="w-8 h-8 text-white mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100" />
+                    <Download className="w-8 h-8 text-white mb-3 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100" />
                     <span className="text-sm font-medium">Download</span>
                   </a>
                   <p className="text-white font-medium text-lg">

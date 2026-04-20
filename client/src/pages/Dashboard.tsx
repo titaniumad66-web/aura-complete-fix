@@ -46,7 +46,20 @@ export default function Dashboard() {
       return;
     }
     setError(null);
-    setLoading(true);
+    
+    // Check cache first for faster initial load
+    const cached = localStorage.getItem("aura_dashboard_cache");
+    if (cached) {
+      try {
+        setRows(JSON.parse(cached));
+        setLoading(false);
+      } catch (e) {
+        console.error("Cache parse error", e);
+      }
+    } else {
+      setLoading(true);
+    }
+
     try {
       const res = await fetch(apiUrl("/api/websites"), {
         headers: { Authorization: `Bearer ${token}` },
@@ -58,10 +71,14 @@ export default function Dashboard() {
         return;
       }
       const data = await res.json();
-      setRows(Array.isArray(data) ? data : []);
+      const freshRows = Array.isArray(data) ? data : [];
+      setRows(freshRows);
+      
+      // Update cache
+      localStorage.setItem("aura_dashboard_cache", JSON.stringify(freshRows));
     } catch {
       setError("Could not load your creations.");
-      setRows([]);
+      // Keep cached rows if network fails
     } finally {
       setLoading(false);
     }

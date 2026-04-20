@@ -14,6 +14,9 @@ const GiftRevealSection: React.FC = () => {
   const textRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
+
     if (!canvasRef.current || !containerRef.current) return;
 
     const THREE = window.THREE;
