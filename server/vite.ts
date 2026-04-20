@@ -1,11 +1,11 @@
 import { type Express } from "express";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../client/vite.config";
+import viteConfig from "../client/vite.config.ts";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
-import { applyOgToIndexHtml } from "./surpriseOg";
+import { applyOgToIndexHtml } from "./surpriseOg.ts";
 
 const viteLogger = createLogger();
 

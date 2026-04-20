@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { ensureWebsiteUnlockColumns, isMissingWebsiteColumnError } from "./ensureDbSchema";
+import { db } from "./db.ts";
+import { ensureWebsiteUnlockColumns, isMissingWebsiteColumnError } from "./ensureDbSchema.ts";
 import { templates, users, websites, siteImages, purchases, pricing } from "../shared/schema";
 import { desc, eq, and, count, sql } from "drizzle-orm";
 import {
@@ -14,6 +14,13 @@ import {
   type Pricing,
   type InsertPricing,
 } from "../shared/schema";
+
+function dbc() {
+  if (!db) {
+    throw new Error("DATABASE_UNAVAILABLE");
+  }
+  return db;
+}
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -73,7 +80,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
 
   async getUser(id: string): Promise<User | undefined> {
-    const result = await db
+    const result = await dbc()
       .select()
       .from(users)
       .where(eq(users.id, id));
@@ -82,7 +89,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db
+    const result = await dbc()
       .select()
       .from(users)
       .where(eq(users.username, username));
@@ -91,7 +98,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await db
+    const result = await dbc()
       .insert(users)
       .values({
         ...insertUser,
@@ -105,7 +112,7 @@ export class DatabaseStorage implements IStorage {
   // CREATE WEBSITE
   async createWebsite(data: any): Promise<any> {
     const insertRow = async (row: Record<string, unknown>) => {
-      const result = await db.insert(websites).values(row as any).returning();
+      const result = await dbc().insert(websites).values(row as any).returning();
       return result[0];
     };
 
@@ -142,7 +149,7 @@ export class DatabaseStorage implements IStorage {
     }>,
   ): Promise<void> {
     const apply = async (payload: typeof data) => {
-      await db.update(websites).set(payload).where(eq(websites.id, id));
+      await dbc().update(websites).set(payload).where(eq(websites.id, id));
     };
 
     try {
@@ -163,7 +170,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteWebsite(id: string, userId: string): Promise<boolean> {
-    const result = await db
+    const result = await dbc()
       .delete(websites)
       .where(and(eq(websites.id, id), eq(websites.userId, userId)))
       .returning({ id: websites.id });
@@ -173,7 +180,7 @@ export class DatabaseStorage implements IStorage {
   // GET USER WEBSITES
   async getUserWebsites(userId: string): Promise<any[]> {
     const query = () =>
-      db
+      dbc()
         .select()
         .from(websites)
         .where(eq(websites.userId, userId))
@@ -191,7 +198,7 @@ export class DatabaseStorage implements IStorage {
 
   // GET WEBSITE BY ID
   async getWebsiteById(id: string): Promise<any | undefined> {
-    const query = () => db.select().from(websites).where(eq(websites.id, id));
+    const query = () => dbc().select().from(websites).where(eq(websites.id, id));
 
     try {
       const result = await query();
@@ -206,7 +213,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTemplates(): Promise<Template[]> {
-    const result = await db
+    const result = await dbc()
       .select()
       .from(templates)
       .orderBy(desc(templates.createdAt));
@@ -215,7 +222,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTemplateById(id: string): Promise<Template | undefined> {
-    const result = await db
+    const result = await dbc()
       .select()
       .from(templates)
       .where(eq(templates.id, id));
@@ -224,7 +231,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTemplate(data: InsertTemplate): Promise<Template> {
-    const result = await db
+    const result = await dbc()
       .insert(templates)
       .values(data)
       .returning();
@@ -233,29 +240,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteTemplate(id: string): Promise<void> {
-    await db.delete(templates).where(eq(templates.id, id));
+    await dbc().delete(templates).where(eq(templates.id, id));
   }
 
   async getSiteImages(sectionName?: string): Promise<SiteImage[]> {
     if (sectionName) {
-      const result = await db
+      const result = await dbc()
         .select()
         .from(siteImages)
         .where(eq(siteImages.sectionName, sectionName))
         .orderBy(desc(siteImages.createdAt));
       return result;
     }
-    const result = await db.select().from(siteImages).orderBy(desc(siteImages.createdAt));
+    const result = await dbc().select().from(siteImages).orderBy(desc(siteImages.createdAt));
     return result;
   }
 
   async getSiteImageById(id: string): Promise<SiteImage | undefined> {
-    const result = await db.select().from(siteImages).where(eq(siteImages.id, id));
+    const result = await dbc().select().from(siteImages).where(eq(siteImages.id, id));
     return result[0];
   }
 
   async createSiteImage(data: InsertSiteImage): Promise<SiteImage> {
-    const result = await db.insert(siteImages).values(data).returning();
+    const result = await dbc().insert(siteImages).values(data).returning();
     return result[0];
   }
 
@@ -263,21 +270,21 @@ export class DatabaseStorage implements IStorage {
     id: string,
     data: Partial<InsertSiteImage>,
   ): Promise<SiteImage | undefined> {
-    const result = await db.update(siteImages).set(data).where(eq(siteImages.id, id)).returning();
+    const result = await dbc().update(siteImages).set(data).where(eq(siteImages.id, id)).returning();
     return result[0];
   }
 
   async deleteSiteImage(id: string): Promise<void> {
-    await db.delete(siteImages).where(eq(siteImages.id, id));
+    await dbc().delete(siteImages).where(eq(siteImages.id, id));
   }
 
   async getUserWebsiteCount(userId: string): Promise<number> {
-    const result = await db.select({ c: count() }).from(websites).where(eq(websites.userId, userId));
+    const result = await dbc().select({ c: count() }).from(websites).where(eq(websites.userId, userId));
     return Number(result[0]?.c ?? 0);
   }
 
   async getApprovedPurchaseCount(userId: string, productType: string): Promise<number> {
-    const result = await db
+    const result = await dbc()
       .select({ c: count() })
       .from(purchases)
       .where(and(eq(purchases.userId, userId), eq(purchases.productType, productType), eq(purchases.paymentStatus, "approved")));
@@ -285,26 +292,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPricing(): Promise<Pricing[]> {
-    const result = await db.select().from(pricing).orderBy(desc(pricing.createdAt));
+    const result = await dbc().select().from(pricing).orderBy(desc(pricing.createdAt));
     return result;
   }
 
   async upsertPricing(productName: string, price: string): Promise<Pricing> {
-    const existing = await db.select().from(pricing).where(eq(pricing.productName, productName));
+    const existing = await dbc().select().from(pricing).where(eq(pricing.productName, productName));
     if (existing[0]) {
-      const result = await db
+      const result = await dbc()
         .update(pricing)
         .set({ price })
         .where(eq(pricing.productName, productName))
         .returning();
       return result[0];
     }
-    const result = await db.insert(pricing).values({ productName, price }).returning();
+    const result = await dbc().insert(pricing).values({ productName, price }).returning();
     return result[0];
   }
 
   async createPurchase(data: InsertPurchase): Promise<Purchase> {
-    const result = await db.insert(purchases).values(data).returning();
+    const result = await dbc().insert(purchases).values(data).returning();
     return result[0];
   }
 
@@ -316,7 +323,7 @@ export class DatabaseStorage implements IStorage {
     >
   > {
     if (status) {
-      const result = await db
+      const result = await dbc()
         .select({
           id: purchases.id,
           userId: purchases.userId,
@@ -333,7 +340,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(purchases.createdAt));
       return result as any;
     }
-    const result = await db
+    const result = await dbc()
       .select({
         id: purchases.id,
         userId: purchases.userId,
@@ -351,15 +358,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePurchaseStatus(id: string, status: string): Promise<void> {
-    await db.update(purchases).set({ paymentStatus: status }).where(eq(purchases.id, id));
+    await dbc().update(purchases).set({ paymentStatus: status }).where(eq(purchases.id, id));
   }
 
   async setUserFreeUsed(userId: string): Promise<void> {
-    await db.update(users).set({ freeWebsiteUsed: true }).where(eq(users.id, userId));
+    await dbc().update(users).set({ freeWebsiteUsed: true }).where(eq(users.id, userId));
   }
 
   async isUserFreeUsed(userId: string): Promise<boolean> {
-    const result = await db.select({ v: users.freeWebsiteUsed }).from(users).where(eq(users.id, userId));
+    const result = await dbc().select({ v: users.freeWebsiteUsed }).from(users).where(eq(users.id, userId));
     return Boolean(result[0]?.v);
   }
 
@@ -370,14 +377,14 @@ export class DatabaseStorage implements IStorage {
     revenueApproved: number;
     pendingPayments: number;
   }> {
-    const usersCount = await db.select({ c: count() }).from(users);
-    const websitesCount = await db.select({ c: count() }).from(websites);
-    const purchasesCount = await db.select({ c: count() }).from(purchases);
-    const pendingCount = await db
+    const usersCount = await dbc().select({ c: count() }).from(users);
+    const websitesCount = await dbc().select({ c: count() }).from(websites);
+    const purchasesCount = await dbc().select({ c: count() }).from(purchases);
+    const pendingCount = await dbc()
       .select({ c: count() })
       .from(purchases)
       .where(eq(purchases.paymentStatus, "pending"));
-    const revenueRow = await db
+    const revenueRow = await dbc()
       .select({
         s: sql<number>`COALESCE(SUM(CASE WHEN ${purchases.paymentStatus} = 'approved' THEN (${purchases.amount})::numeric ELSE 0 END), 0)`,
       })
@@ -392,7 +399,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listUsers(): Promise<Array<Pick<User, "id" | "username" | "email" | "role" | "createdAt">>> {
-    const result = await db
+    const result = await dbc()
       .select({
         id: users.id,
         username: users.username,

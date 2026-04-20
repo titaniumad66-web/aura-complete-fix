@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
-import { storage } from "./storage";
+import { storage } from "./storage.ts";
 
 /** Minimal valid 1×1 PNG — last resort; prefer `client/public/og-share-default.png` (≥300×200 for WhatsApp). */
 const OG_DEFAULT_PNG = Buffer.from(

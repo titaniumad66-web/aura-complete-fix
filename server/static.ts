@@ -1,7 +1,7 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { applyOgToIndexHtml } from "./surpriseOg";
+import { applyOgToIndexHtml } from "./surpriseOg.ts";
 
 export function serveStatic(app: Express) {
   const distPath = path.resolve(process.cwd(), "dist", "public");

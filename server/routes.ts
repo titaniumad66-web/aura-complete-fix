@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage.ts";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { insertUserSchema } from "../shared/schema";
@@ -8,9 +8,9 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { nanoid } from "nanoid";
-import { generateBirthdayContent } from "./aiService";
-import { auraAIChatHandler } from "./auraAIChatHandler";
-import { sendOgDefaultPng } from "./surpriseOg";
+import { generateBirthdayContent } from "./aiService.ts";
+import { auraAIChatHandler } from "./auraAIChatHandler.ts";
+import { sendOgDefaultPng } from "./surpriseOg.ts";
 
 function extractUnlockFromContent(content: string): {
   unlockAt: Date | null;

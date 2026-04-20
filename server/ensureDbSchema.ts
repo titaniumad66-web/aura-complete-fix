@@ -1,10 +1,11 @@
-import { pool } from "./db";
+import { pool } from "./db.ts";
 
 /**
  * Ensures `websites` has scheduled-unlock columns (matches migrations/0003_website_unlock.sql).
  * Safe to run repeatedly (IF NOT EXISTS). Call on startup and optionally after column-related errors.
  */
 export async function ensureWebsiteUnlockColumns(): Promise<void> {
+  if (!pool) return;
   const client = await pool.connect();
   try {
     await client.query(
