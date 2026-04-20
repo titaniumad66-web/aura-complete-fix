@@ -1,5 +1,6 @@
 /* Loads `.env` from project root */
 import "dotenv/config";
+import cors from "cors";
 import express from "express";
 import fs from "fs";
 import path from "path";
@@ -9,6 +10,17 @@ import { registerRoutes } from "./routes.ts";
 
 const app = express();
 const httpServer = createServer(app);
+
+app.use(cors({
+  origin: [
+    "https://aura-complete-fix.vercel.app",
+    "http://localhost:5173"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
+app.options("*", cors());
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
