@@ -42,10 +42,12 @@ export function log(message, source = "express") {
   await registerRoutes(httpServer, app);
 
   // Serve frontend for production
-  app.use(express.static("client/dist"));
-  app.get("*", (req, res) => {
-    res.sendFile("client/dist/index.html", { root: "." });
-  });
+  if (process.env.NODE_ENV !== "production") {
+    app.use(express.static("client/dist"));
+    app.get("*", (req, res) => {
+      res.sendFile("client/dist/index.html", { root: "." });
+    });
+  }
 
   // Error handling middleware
   app.use((err, _req, res, next) => {

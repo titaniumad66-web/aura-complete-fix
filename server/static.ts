@@ -4,6 +4,10 @@ import path from "path";
 import { applyOgToIndexHtml } from "./surpriseOg.ts";
 
 export function serveStatic(app: Express) {
+  if (process.env.NODE_ENV === "production") {
+    // Frontend is on Vercel, don't serve it here.
+    return;
+  }
   const distPath = path.resolve(process.cwd(), "dist", "public");
   if (!fs.existsSync(distPath)) {
     throw new Error(

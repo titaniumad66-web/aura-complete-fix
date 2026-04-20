@@ -41,10 +41,12 @@ function registerErrorHandler() {
   await registerRoutes(httpServer, app);
 
   // Serve frontend for production
-  app.use(express.static("client/dist"));
-  app.get("*", (_req, res) => {
-    res.sendFile("client/dist/index.html", { root: "." });
-  });
+  if (process.env.NODE_ENV !== "production") {
+    app.use(express.static("client/dist"));
+    app.get("*", (_req, res) => {
+      res.sendFile("client/dist/index.html", { root: "." });
+    });
+  }
 
   registerErrorHandler();
 

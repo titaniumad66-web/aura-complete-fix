@@ -1,11 +1,11 @@
 import { type Express } from "express";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../client/vite.config.ts";
+import viteConfig from "../client/vite.config";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
-import { applyOgToIndexHtml } from "./surpriseOg.ts";
+import { applyOgToIndexHtml } from "./surpriseOg";
 
 const viteLogger = createLogger();
 
@@ -21,7 +21,7 @@ export async function setupVite(server: Server, app: Express) {
     configFile: false,
     customLogger: {
       ...viteLogger,
-      error: (msg, options) => {
+      error: (msg, options?: any) => {
         viteLogger.error(msg, options);
         process.exit(1);
       },
