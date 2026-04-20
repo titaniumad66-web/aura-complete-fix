@@ -41,6 +41,9 @@ const TemplateShowcase: React.FC = () => {
   const imagesRef = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
+
     const gsap = window.gsap;
     const ScrollTrigger = window.ScrollTrigger;
 

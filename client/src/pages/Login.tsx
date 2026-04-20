@@ -31,6 +31,7 @@ export default function AuthPage() {
       : { username, email, password };
 
     try {
+      console.log(`[AUTH] Attempting ${isLogin ? "login" : "register"} for user: ${username}`);
       const response = await fetch(apiUrl(endpoint), {
         method: "POST",
         headers: {
@@ -40,6 +41,7 @@ export default function AuthPage() {
       });
 
       const data = await response.json();
+      console.log(`[AUTH] Response received:`, { ok: response.ok, status: response.status });
 
       if (!response.ok) {
         setError(data.message || "Login failed. Please try again.");
@@ -47,13 +49,15 @@ export default function AuthPage() {
       }
 
       if (data?.token) {
+        console.log(`[AUTH] Success! Setting token and navigating to home.`);
         setAuthToken(data.token);
         setLocation("/");
         return;
       }
 
       setError("Login failed. Missing authentication token.");
-    } catch {
+    } catch (err) {
+      console.error(`[AUTH] Error during request:`, err);
       setError("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);

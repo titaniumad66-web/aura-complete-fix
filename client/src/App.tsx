@@ -10,42 +10,52 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "./components/ui/toaster";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { Navbar } from "./components/layout/Navbar";
-import { JSX, useEffect } from "react";
-import PreviewWebsite from "./pages/PreviewWebsite";
-import Home from "./pages/Home";
-import CreateWebsite from "./pages/CreateWebsite";
-import Login from "./pages/Login";
-import AdminDashboard from "./pages/AdminDashboard";
-import AllTemplates from "./pages/AllTemplates";
-import WebsiteView from "./pages/WebsiteView";
-import LetterView from "./pages/LetterView";
-import NotFound from "./pages/not-found";
+import { JSX, useEffect, lazy, Suspense } from "react";
+
+// Lazy load pages for better performance
+const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Login"));
+const PreviewWebsite = lazy(() => import("./pages/PreviewWebsite"));
+const CreateWebsite = lazy(() => import("./pages/CreateWebsite"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AllTemplates = lazy(() => import("./pages/AllTemplates"));
+const WebsiteView = lazy(() => import("./pages/WebsiteView"));
+const LetterView = lazy(() => import("./pages/LetterView"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Payment = lazy(() => import("./pages/Payment"));
+const NotFound = lazy(() => import("./pages/not-found"));
+
 import AuraAI from "./components/AuraAI";
-import Dashboard from "./pages/Dashboard";
-import Payment from "./pages/Payment";
 
 // 🔒 Protected Route (Logged in users only)
 function ProtectedRoute({ component: Component }: any) {
   const token = getValidAuthToken();
+  const [, setLocation] = useLocation();
 
-  if (!token) {
-    clearAuthToken();
-    window.location.href = "/login";
-    return null;
-  }
+  useEffect(() => {
+    if (!token) {
+      clearAuthToken();
+      setLocation("/login");
+    }
+  }, [token, setLocation]);
 
+  if (!token) return null;
   return <Component />;
 }
 
 // 👑 Admin Only Route
 function AdminRoute({ component: Component }: any) {
   const token = getValidAuthToken();
+  const [, setLocation] = useLocation();
 
-  if (!token) {
-    clearAuthToken();
-    window.location.href = "/login";
-    return null;
-  }
+  useEffect(() => {
+    if (!token) {
+      clearAuthToken();
+      setLocation("/login");
+    }
+  }, [token, setLocation]);
+
+  if (!token) return null;
 
   const payload = getAuthPayload();
 
@@ -63,54 +73,53 @@ function AdminRoute({ component: Component }: any) {
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/login" component={Login} />
-      <Route path="/preview" component={PreviewWebsite} />
-      <Route path="/preview/:id" component={PreviewWebsite} />
-      <Route path="/templates" component={AllTemplates} />
+    <Suspense
+      fallback={
+        <div className="flex h-[50vh] w-full items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        </div>
+      }
+    >
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/login" component={Login} />
+        <Route path="/preview" component={PreviewWebsite} />
+        <Route path="/preview/:id" component={PreviewWebsite} />
+        <Route path="/templates" component={AllTemplates} />
 
-      <Route path="/create">
-        {() => <ProtectedRoute component={CreateWebsite} />}
-      </Route>
+        <Route path="/create">
+          {() => <ProtectedRoute component={CreateWebsite} />}
+        </Route>
 
-      <Route path="/admin">
-        {() => <AdminRoute component={AdminDashboard} />}
-      </Route>
+        <Route path="/admin">
+          {() => <AdminRoute component={AdminDashboard} />}
+        </Route>
 
-      <Route path="/dashboard">
-        {() => <ProtectedRoute component={Dashboard} />}
-      </Route>
+        <Route path="/dashboard">
+          {() => <ProtectedRoute component={Dashboard} />}
+        </Route>
 
-      <Route path="/pay" component={Payment} />
+        <Route path="/pay" component={Payment} />
 
-      <Route path="/letter/:id" component={LetterView} />
+        <Route path="/letter/:id" component={LetterView} />
 
-      {/* ✅ PUBLIC WEBSITE ROUTE */}
-      <Route path="/w/:id" component={WebsiteView} />
+        {/* ✅ PUBLIC WEBSITE ROUTE */}
+        <Route path="/w/:id" component={WebsiteView} />
 
-      {/* ⚠️ ALWAYS KEEP THIS LAST */}
-      <Route component={NotFound} />
-    </Switch>
+        {/* ⚠️ ALWAYS KEEP THIS LAST */}
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
 function App(): JSX.Element {
   const [location] = useLocation();
   useEffect(() => {
-    const navEntries = performance.getEntriesByType("navigation");
-    const navEntry = navEntries[0] as PerformanceNavigationTiming | undefined;
-    if (navEntry?.type === "reload") {
-      clearAuthToken();
-    }
-
-    const handleBeforeUnload = () => {
-      clearAuthToken();
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
+    console.log(`[NAV] Navigated to: ${location}`);
+    // Scroll to top on route change
+    window.scrollTo(0, 0);
+  }, [location]);
 
   const showAuraAi = location !== "/login";
 

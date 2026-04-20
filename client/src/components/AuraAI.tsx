@@ -70,6 +70,7 @@ export default function AuraAI() {
   const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed || isSending) return;
+    console.log(`[AI] Sending message: ${trimmed}`);
     const newMessage: Message = {
       id: `${Date.now()}-${Math.random()}`,
       role: "user",
@@ -90,6 +91,7 @@ export default function AuraAI() {
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { reply?: string };
+      console.log(`[AI] Response received:`, { ok: res.ok, status: res.status });
       const reply =
         typeof data.reply === "string" && data.reply.length > 0
           ? data.reply

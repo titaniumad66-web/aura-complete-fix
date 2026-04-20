@@ -2,9 +2,11 @@ import React from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import SmoothButton from "./ui/SmoothButton";
 import { ArrowRight } from "lucide-react";
+import { useLocation } from "wouter";
 
 const CallToActionSection: React.FC = () => {
   const reduce = useReducedMotion();
+  const [, setLocation] = useLocation();
 
   return (
     <section className="relative flex min-h-[62vh] w-full items-center justify-center overflow-hidden bg-[#FFE4EC]/50 px-4 py-24 sm:px-6 sm:py-28 md:min-h-[70vh] md:py-32">
@@ -90,7 +92,7 @@ const CallToActionSection: React.FC = () => {
             variant="primary"
             className="group w-full max-w-sm px-9 py-4 text-base sm:w-auto sm:max-w-none md:px-10 md:text-lg"
             onClick={() => {
-              window.location.href = "/create";
+              setLocation("/create");
             }}
           >
             Create your surprise

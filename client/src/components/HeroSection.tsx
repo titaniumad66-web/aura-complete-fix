@@ -34,6 +34,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return; // Disable heavy Three.js and GSAP on mobile
+
     if (!canvasRef.current || !sectionRef.current) return;
 
     const THREE = window.THREE;

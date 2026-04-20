@@ -65,6 +65,9 @@ const FeaturesSection: React.FC = () => {
   const reduce = useReducedMotion();
 
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
+
     const gsap = window.gsap;
     const ScrollTrigger = window.ScrollTrigger;
 
