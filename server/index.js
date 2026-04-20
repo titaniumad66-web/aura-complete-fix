@@ -12,12 +12,7 @@ const app = express();
 const httpServer = createServer(app);
 
 app.use(cors({
-  origin: [
-    "https://aura-complete-fix.vercel.app",
-    "http://localhost:5173"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
+  origin: "*"
 }));
 
 app.options("*", cors());
